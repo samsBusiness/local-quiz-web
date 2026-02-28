@@ -8,6 +8,7 @@ import {
   deleteSessionService
 } from '../services/sessionService';
 import { CreateSessionDto, UpdateSessionDto } from '../dtos/Session';
+import { ResolvedApiRouteContextType } from '../types/api';
 
 export const createSessionController = async (
   request: ModifiedNextRequest
@@ -29,9 +30,9 @@ export const getSessionsController = async (
 
 export const getSessionByIdController = async (
   request: ModifiedNextRequest,
-  { params }: { params: { id: string } }
+  ctx: ResolvedApiRouteContextType
 ): Promise<ModifiedNextResponse> => {
-  const { id } = params;
+  const { id } = ctx.params;
 
   const result = await getSessionByIdService(id);
 
@@ -40,9 +41,9 @@ export const getSessionByIdController = async (
 
 export const updateSessionController = async (
   request: ModifiedNextRequest,
-  { params }: { params: { id: string } }
+  ctx: ResolvedApiRouteContextType
 ): Promise<ModifiedNextResponse> => {
-  const { id } = params;
+  const { id } = ctx.params;
   const body = await request.json() as UpdateSessionDto;
 
   const result = await updateSessionService(id, body);
@@ -52,9 +53,9 @@ export const updateSessionController = async (
 
 export const deleteSessionController = async (
   request: ModifiedNextRequest,
-  { params }: { params: { id: string } }
+  ctx: ResolvedApiRouteContextType
 ): Promise<ModifiedNextResponse> => {
-  const { id } = params;
+  const { id } = ctx.params;
 
   const result = await deleteSessionService(id);
 

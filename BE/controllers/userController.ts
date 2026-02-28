@@ -2,12 +2,13 @@ import { ModifiedNextRequest, ModifiedNextResponse } from '../types/api';
 import { NextResponse } from 'next/server';
 import { updateUserProfileService } from '../services/userService';
 import { UpdateUserDto } from '../dtos/User';
+import { ResolvedApiRouteContextType } from '../types/api';
 
 export const updateUserController = async (
   request: ModifiedNextRequest,
-  { params }: { params: { id: string } }
+  ctx: ResolvedApiRouteContextType
 ): Promise<ModifiedNextResponse> => {
-  const { id } = params;
+  const { id } = ctx.params;
   const body = await request.json() as UpdateUserDto;
 
   const result = await updateUserProfileService(id, body);

@@ -1,29 +1,49 @@
-import { ModifiedNextRequest, ModifiedNextResponse, ModifiedNextMiddleware, ApiHandler, ApiRouteContextType } from '../types/api';
+import {
+  ApiHandler,
+  ApiRouteContextType,
+  ResolvedApiRouteContextType,
+  ModifiedNextMiddleware,
+  ModifiedNextRequest,
+  ModifiedNextResponse,
+} from "../types";
 
 export const requestHandler = (
   handler: ApiHandler,
   middlewares: ModifiedNextMiddleware[] = []
 ) => {
-  return async (request: ModifiedNextRequest, context: ApiRouteContextType): Promise<ModifiedNextResponse> => {
+  return async (
+    request: ModifiedNextRequest,
+    ctx: ApiRouteContextType
+  ): Promise<ModifiedNextResponse> => {
     try {
-      // Execute middlewares in sequence
-      for (const middleware of middlewares) {
-        const result = await middleware(request, context, async () => {});
-        
-        // If middleware returns a response, stop execution and return it
-        if (result && 'status' in result) {
-          return result as ModifiedNextResponse;
-        }
-      }
+      let index = 0;
 
-      // Execute the main handler
-      return await handler(request, context);
+      const next = async (): Promise<void> => {
+        if (index < middlewares.length) {
+          const middleware = middlewares[index++];
+          await middleware(request, ctx, next);
+        }
+      };
+
+      await next();
+
+      // Await params if it's a Promise
+      const resolvedParams = await ctx.params;
+      const resolvedCtx: ResolvedApiRouteContextType = {
+        params: resolvedParams
+      };
+
+      return handler(request, resolvedCtx);
     } catch (error) {
-      console.error('Request handler error:', error);
-      return Response.json(
-        { message: 'Internal server error' },
+      console.error("Request handler error:", error);
+      const { NextResponse } = await import("next/server");
+      return NextResponse.json(
+        {
+          status: 500,
+          message: "Internal server error",
+        },
         { status: 500 }
-      ) as ModifiedNextResponse;
+      );
     }
   };
 };

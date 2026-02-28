@@ -30,12 +30,16 @@ export type HTTPStatus = 200 | 201 | 400 | 401 | 403 | 404 | 500; // Add other s
 export type ServiceResponseType = {status: HTTPStatus} & ResponseBody;
 
 export type ApiRouteContextType = {
-  params: Record<string, string> | undefined;
+  params: Promise<Record<string, string>>;
+};
+
+export type ResolvedApiRouteContextType = {
+  params: Record<string, string>;
 };
 
 export type ApiHandler = (
   request: ModifiedNextRequest,
-  ctx: ApiRouteContextType
+  ctx: ResolvedApiRouteContextType
 ) => Promise<ModifiedNextResponse>;
 
 export type ModifiedNextMiddleware = (

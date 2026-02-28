@@ -3,26 +3,17 @@ import { requestHandler } from '../../../../../BE/utils/requestHandler';
 import { connectDB, validate, checkAuth } from '../../../../../BE/middlewares';
 import { UpdateSessionDto } from '../../../../../BE/dtos/Session';
 
-export const GET = requestHandler(
-  (request, context) => getSessionByIdController(request, context as { params: { id: string } }),
-  [
-    connectDB,
-  ]
-);
+export const GET = requestHandler(getSessionByIdController, [
+  connectDB,
+]);
 
-export const PUT = requestHandler(
-  (request, context) => updateSessionController(request, context as { params: { id: string } }),
-  [
-    connectDB,
-    checkAuth,
-    validate(UpdateSessionDto),
-  ]
-);
+export const PUT = requestHandler(updateSessionController, [
+  connectDB,
+  checkAuth,
+  validate(UpdateSessionDto),
+]);
 
-export const DELETE = requestHandler(
-  (request, context) => deleteSessionController(request, context as { params: { id: string } }),
-  [
-    connectDB,
-    checkAuth,
-  ]
-);
+export const DELETE = requestHandler(deleteSessionController, [
+  connectDB,
+  checkAuth,
+]);
