@@ -3,7 +3,7 @@ import { connectDB } from '../../../../BE/middlewares';
 import { seedGlobalData } from '../../../../BE/utils/seedData';
 import { ModifiedNextRequest } from '../../../../BE/types/api';
 
-export const POST = async () => {
+export const GET = async () => {
   try {
     // Connect to database
     await connectDB({} as ModifiedNextRequest, undefined, async () => {});
