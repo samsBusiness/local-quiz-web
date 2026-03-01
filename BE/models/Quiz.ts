@@ -1,9 +1,14 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IOption {
+  id: string;
+  text: string;
+}
+
 export interface IQuestion {
   question: string;
-  options: string[];
-  correctOption: number;
+  options: IOption[];
+  correctOption: string;
   points?: number;
 }
 
@@ -18,6 +23,18 @@ export interface IQuiz extends Document {
   updatedAt: Date;
 }
 
+const OptionSchema: Schema = new Schema({
+  id: {
+    type: String,
+    required: true,
+  },
+  text: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+}, { _id: false });
+
 const QuestionSchema: Schema = new Schema({
   question: {
     type: String,
@@ -25,24 +42,23 @@ const QuestionSchema: Schema = new Schema({
     trim: true,
   },
   options: {
-    type: [String],
+    type: [OptionSchema],
     required: true,
     validate: {
-      validator: function(options: string[]) {
+      validator: function(options: IOption[]) {
         return options.length >= 2;
       },
       message: 'Question must have at least 2 options'
     }
   },
   correctOption: {
-    type: Number,
+    type: String,
     required: true,
-    min: 0,
     validate: {
-      validator: function(this: IQuestion, value: number) {
-        return value < this.options.length;
+      validator: function(this: IQuestion, value: string) {
+        return this.options.some(opt => opt.id === value);
       },
-      message: 'Correct option must be a valid option index'
+      message: 'Correct option must reference a valid option id'
     }
   },
   points: {
@@ -94,4 +110,5 @@ const QuizSchema: Schema = new Schema({
   timestamps: true,
 });
 
-export default mongoose.model<IQuiz>('Quiz', QuizSchema);
+export const Quiz =
+  mongoose.models?.Quiz || mongoose.model<IQuiz>("Quiz", QuizSchema, "quizzes");

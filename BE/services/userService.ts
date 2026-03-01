@@ -1,5 +1,5 @@
-import User, { IUser } from '../models/User';
-import { ServiceResponseType } from '../types/api';
+import { User } from "../models/";
+import { ServiceResponseType } from "../types/api";
 
 export const updateUserProfileService = async (
   userId: string,

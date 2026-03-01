@@ -2,24 +2,31 @@ import "reflect-metadata";
 import { IsString, IsNumber, IsOptional, IsArray, Min, IsNotEmpty, ValidateNested, IsMongoId } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
-export class QuestionDto {
+export class OptionDto {
+  @IsString()
+  @IsNotEmpty()
+  public id!: string;
+
   @IsString()
   @IsNotEmpty()
   @Transform(({ value }) => value?.trim())
-  public id!: string;
+  public text!: string;
+}
 
+export class QuestionDto {
   @IsString()
   @IsNotEmpty()
   @Transform(({ value }) => value?.trim())
   public question!: string;
 
   @IsArray()
-  @IsString({ each: true })
-  public options!: string[];
+  @ValidateNested({ each: true })
+  @Type(() => OptionDto)
+  public options!: OptionDto[];
 
-  @IsNumber()
-  @Min(0)
-  public correctOption!: number;
+  @IsString()
+  @IsNotEmpty()
+  public correctOption!: string;
 
   @IsNumber()
   @Min(1)
@@ -51,10 +58,6 @@ export class CreateQuizDto {
   @ValidateNested({ each: true })
   @Type(() => QuestionDto)
   public questions!: QuestionDto[];
-
-  @IsMongoId()
-  @IsNotEmpty()
-  public createdBy!: string;
 }
 
 export class UpdateQuizDto {

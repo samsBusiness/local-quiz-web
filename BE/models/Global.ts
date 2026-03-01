@@ -41,4 +41,5 @@ const GlobalSchema: Schema = new Schema({
   timestamps: true,
 });
 
-export default mongoose.model<IGlobal>('Global', GlobalSchema);
+export const Global =
+  mongoose.models?.Global || mongoose.model<IGlobal>("Global", GlobalSchema, "globals");

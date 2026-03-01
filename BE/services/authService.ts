@@ -1,8 +1,7 @@
-import User, { IUser } from '../models/User';
-import Global, { IWhitelistEntry } from '../models/Global';
+import { User, IUser } from '../models/User';
+import { Global, IWhitelistEntry } from '../models/Global';
 import { sign } from 'jsonwebtoken';
 import { ServiceResponseType } from '../types/api';
-import { USER_ROLES } from '../types/User';
 
 export const loginService = async (
   provider: string,
@@ -29,7 +28,7 @@ export const loginService = async (
 
     // Check if email is in whitelist
     const whitelistEntry = globalData.qmWhitelist.find(
-      entry => entry.email.toLowerCase() === email.toLowerCase()
+      (entry: IWhitelistEntry) => entry.email.toLowerCase() === email.toLowerCase()
     );
 
     if (!whitelistEntry) {
@@ -49,14 +48,12 @@ export const loginService = async (
         providerId: providerToken
       };
 
-      user = new User({
+      user = await User.create({
         email: email.toLowerCase(),
         name: whitelistEntry.name,
         role: whitelistEntry.role,
         providers: [newProvider]
       });
-
-      await user.save();
     }
     // If user exists, check provider logic
     else {
@@ -96,7 +93,7 @@ export const loginService = async (
         name: user!.name,
         role: user!.role
       },
-      process.env.ACCESS_TOKEN_SALT || 'fallback-secret',
+      process.env.ACCESS_TOKEN_SALT || 'locahoot5123',
       {} // No expiration as requested
     );
 

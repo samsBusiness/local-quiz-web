@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import Session, { ISession } from '../models/Session';
+import { Session, ISession } from '../models/Session';
 import { ServiceResponseType } from '../types/api';
 
 export const createSessionService = async (
@@ -14,8 +14,7 @@ export const createSessionService = async (
   }
 ): Promise<ServiceResponseType> => {
   try {
-    const session = new Session(sessionData);
-    await session.save();
+    const session = await Session.create(sessionData);
 
     return {
       status: 201,
@@ -43,7 +42,10 @@ export const createSessionService = async (
 
 export const getSessionsService = async (): Promise<ServiceResponseType> => {
   try {
-    const sessions = await Session.find().sort({ date: -1 });
+    const sessions = await Session.find()
+      .populate('quizMaster', 'name email')
+      .populate('quiz', 'quizName quizCode')
+      .sort({ date: -1 });
 
     return {
       status: 200,
@@ -71,7 +73,9 @@ export const getSessionsService = async (): Promise<ServiceResponseType> => {
 
 export const getSessionByIdService = async (sessionId: string): Promise<ServiceResponseType> => {
   try {
-    const session = await Session.findById(sessionId);
+    const session = await Session.findById(sessionId)
+      .populate('quizMaster', 'name email')
+      .populate('quiz', 'quizName quizCode');
 
     if (!session) {
       return {

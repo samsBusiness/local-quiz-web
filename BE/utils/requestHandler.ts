@@ -17,15 +17,26 @@ export const requestHandler = (
   ): Promise<ModifiedNextResponse> => {
     try {
       let index = 0;
+      let middlewareResponse: ModifiedNextResponse | null = null;
 
       const next = async (): Promise<void> => {
         if (index < middlewares.length) {
           const middleware = middlewares[index++];
-          await middleware(request, ctx, next);
+          const result = await middleware(request, ctx, next);
+          
+          // If middleware returns a response, capture it and stop the chain
+          if (result) {
+            middlewareResponse = result;
+          }
         }
       };
 
       await next();
+
+      // If any middleware returned a response, return it immediately
+      if (middlewareResponse) {
+        return middlewareResponse;
+      }
 
       // Await params if it's a Promise
       const resolvedParams = await ctx.params;

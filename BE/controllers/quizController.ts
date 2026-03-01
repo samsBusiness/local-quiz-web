@@ -12,9 +12,8 @@ import { CreateQuizDto, UpdateQuizDto } from '../dtos/Quiz';
 export const createQuizController = async (
   request: ModifiedNextRequest
 ): Promise<ModifiedNextResponse> => {
-  const body = await request.json() as CreateQuizDto;
-
-  const result = await createQuizService(body);
+  const body: CreateQuizDto = await request.json();
+  const result = await createQuizService(body, request.authData?._id || 'SYSTEM');
 
   return NextResponse.json(result, { status: result.status });
 };

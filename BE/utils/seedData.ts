@@ -1,4 +1,4 @@
-import Global, { IGlobal } from '../models/Global';
+import { Global, IGlobal } from '../models/Global';
 import { USER_ROLES } from '../types/User';
 
 export const seedGlobalData = async (): Promise<void> => {
@@ -18,8 +18,7 @@ export const seedGlobalData = async (): Promise<void> => {
         ]
       };
 
-      const global = new Global(globalData);
-      await global.save();
+      await Global.create(globalData);
       
       console.log('✅ Global data seeded successfully');
     } else {

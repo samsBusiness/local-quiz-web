@@ -1,4 +1,4 @@
-import Global, { IGlobal, IWhitelistEntry } from '../models/Global';
+import { Global } from '../models/Global';
 import { ServiceResponseType } from '../types/api';
 import { USER_ROLES } from '../types/User';
 
@@ -8,8 +8,7 @@ export const getGlobalService = async (): Promise<ServiceResponseType> => {
     
     // Create Global document if it doesn't exist
     if (!globalData) {
-      globalData = new Global({ qmWhitelist: [] });
-      await globalData.save();
+      globalData = await Global.create({ qmWhitelist: [] });
     }
 
     return {
@@ -45,7 +44,7 @@ export const updateGlobalService = async (
     
     // Create Global document if it doesn't exist
     if (!globalData) {
-      globalData = new Global({ qmWhitelist: [] });
+      globalData = await Global.create({ qmWhitelist: [] });
     }
 
     // Direct replacement - FE handles CRUD logic
