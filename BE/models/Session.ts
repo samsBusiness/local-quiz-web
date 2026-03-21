@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IAttendee {
   name: string;
   score: string;
+  userId?: string;
 }
 
 export interface ISession extends Document {
@@ -24,6 +25,9 @@ const AttendeeSchema: Schema = new Schema({
   score: {
     type: String,
     required: true,
+  },
+  userId: {
+    type: String,
   },
 }, { _id: false });
 

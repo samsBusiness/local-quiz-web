@@ -10,6 +10,7 @@ export const createSessionService = async (
     attendees?: Array<{
       name: string;
       score: string;
+      userId?: string;
     }>;
   }
 ): Promise<ServiceResponseType> => {

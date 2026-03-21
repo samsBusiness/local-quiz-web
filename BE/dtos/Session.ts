@@ -11,6 +11,10 @@ export class AttendeeDto {
   @IsString()
   @IsNotEmpty()
   public score!: string;
+
+  @IsString()
+  @IsOptional()
+  public userId?: string;
 }
 
 export class CreateSessionDto {
