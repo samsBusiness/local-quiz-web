@@ -1,4 +1,4 @@
-import { Global } from '../models/Global';
+import { Global, IGlobal } from '../models/Global';
 import { User, Quiz } from '../models/';
 import { ServiceResponseType } from '../types/api';
 import { USER_ROLES } from '../types/User';
@@ -41,7 +41,7 @@ export const updateGlobalService = async (
   }>
 ): Promise<ServiceResponseType> => {
   try {
-    let globalData = await Global.findOne();
+    let globalData:IGlobal | null = await Global.findOne();
     
     // Create Global document if it doesn't exist
     if (!globalData) {
@@ -49,7 +49,7 @@ export const updateGlobalService = async (
     }
 
     // Find removed emails
-    const existingEmails = new Set(globalData.qmWhitelist.map((e) => e.email));
+    const existingEmails = new Set(globalData?.qmWhitelist.map((e) => e.email));
     const newEmails = new Set(whitelistData.map((e) => e.email));
     const removedEmails = [...existingEmails].filter((email) => !newEmails.has(email));
 
@@ -68,18 +68,18 @@ export const updateGlobalService = async (
     }
 
     // Direct replacement - FE handles CRUD logic
-    globalData.qmWhitelist = whitelistData;
-    await globalData.save();
+    globalData!.qmWhitelist = whitelistData;
+    await globalData!.save();
 
     return {
       status: 200,
       message: 'Global data updated successfully',
       data: {
         global: {
-          _id: globalData._id,
-          qmWhitelist: globalData.qmWhitelist,
-          createdAt: globalData.createdAt,
-          updatedAt: globalData.updatedAt
+          _id: globalData!._id,
+          qmWhitelist: globalData!.qmWhitelist,
+          createdAt: globalData!.createdAt,
+          updatedAt: globalData!.updatedAt
         }
       }
     };

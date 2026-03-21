@@ -25,7 +25,7 @@ export type ResponseBody =
 
 export type ModifiedNextResponse = NextResponse<ResponseBody>;
 
-export type HTTPStatus = 200 | 201 | 400 | 401 | 403 | 404 | 500; // Add other status codes as needed
+export type HTTPStatus = 200 | 201 | 400 | 401 | 403 | 404 | 409 | 500; // Add other status codes as needed
 
 export type ServiceResponseType = {status: HTTPStatus} & ResponseBody;
 
