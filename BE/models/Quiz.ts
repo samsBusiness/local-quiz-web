@@ -10,6 +10,7 @@ export interface IQuestion {
   options: IOption[];
   correctOption: string;
   points?: number;
+  timeLimit: number;
 }
 
 export interface IQuiz extends Document {
@@ -66,6 +67,11 @@ const QuestionSchema: Schema = new Schema({
     min: 1,
     default: 1,
   },
+  timeLimit: {
+    type: Number,
+    required: true,
+    min: 1,
+  },
 }, { _id: false });
 
 const QuizSchema: Schema = new Schema({
@@ -83,7 +89,7 @@ const QuizSchema: Schema = new Schema({
   },
   timeLimit: {
     type: Number,
-    required: true,
+    default: 10,
     min: 1,
   },
   description: {

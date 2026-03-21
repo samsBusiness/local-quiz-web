@@ -32,6 +32,10 @@ export class QuestionDto {
   @Min(1)
   @IsOptional()
   public points?: number;
+
+  @IsNumber()
+  @Min(1)
+  public timeLimit!: number;
 }
 
 export class CreateQuizDto {
@@ -47,7 +51,8 @@ export class CreateQuizDto {
 
   @IsNumber()
   @Min(1)
-  public timeLimit!: number;
+  @IsOptional()
+  public timeLimit?: number;
 
   @IsString()
   @IsNotEmpty()

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/auth-context";
+import { toast } from "sonner";
 
 interface WhitelistEntry {
   name: string;
@@ -126,9 +127,12 @@ export default function QuizMastersPage() {
       const result = await res.json();
       if (result.status === 200) {
         setWhitelist(updatedWhitelist);
+      } else {
+        toast.error(result.message);
       }
     } catch (error) {
       console.error("Failed to delete quiz master:", error);
+      toast.error("Failed to remove quiz master.");
     }
   };
 

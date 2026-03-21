@@ -100,7 +100,6 @@ export default function DashboardPage() {
   const handleSave = async (formData: {
     quizName: string;
     quizCode: string;
-    timeLimit: number;
     description: string;
     questions: Question[];
   }) => {
@@ -163,7 +162,6 @@ export default function DashboardPage() {
               <TableHead>Name</TableHead>
               <TableHead>Code</TableHead>
               <TableHead>Questions</TableHead>
-              <TableHead>Time Limit</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="w-16">Actions</TableHead>
             </TableRow>
@@ -215,12 +213,6 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <HelpCircle className="h-3.5 w-3.5" />
                       {quiz.questions.length}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
-                      {quiz.timeLimit} min
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">

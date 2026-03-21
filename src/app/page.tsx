@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
+import { Toast } from "radix-ui";
+import { toast } from "sonner";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
@@ -42,6 +44,11 @@ export default function Home() {
         window.location.href = "/dashboard";
       } else {
         console.error("Login failed:", result.message);
+        toast.error(result.message || "Login failed. Please try again.", {
+          position: "top-right",
+          duration: 5000,
+          style: { background: "#f87171", color: "#fff" },
+        });
         setIsLoading(false);
       }
     } catch (error) {

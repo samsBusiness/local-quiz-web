@@ -1,4 +1,5 @@
 import { Global } from '../models/Global';
+import { User, Quiz } from '../models/';
 import { ServiceResponseType } from '../types/api';
 import { USER_ROLES } from '../types/User';
 
@@ -45,6 +46,25 @@ export const updateGlobalService = async (
     // Create Global document if it doesn't exist
     if (!globalData) {
       globalData = await Global.create({ qmWhitelist: [] });
+    }
+
+    // Find removed emails
+    const existingEmails = new Set(globalData.qmWhitelist.map((e) => e.email));
+    const newEmails = new Set(whitelistData.map((e) => e.email));
+    const removedEmails = [...existingEmails].filter((email) => !newEmails.has(email));
+
+    // Block removal if any removed user has quizzes
+    if (removedEmails.length > 0) {
+      const users = await User.find({ email: { $in: removedEmails } }).select('_id email name');
+      for (const user of users) {
+        const quizCount = await Quiz.countDocuments({ createdBy: user._id });
+        if (quizCount > 0) {
+          return {
+            status: 409,
+            message: `Cannot remove ${user.name || user.email} — they have ${quizCount} quiz${quizCount > 1 ? 'zes' : ''} in the system.`,
+          };
+        }
+      }
     }
 
     // Direct replacement - FE handles CRUD logic

@@ -26,7 +26,6 @@ interface QuizFormModalProps {
   onSave: (data: {
     quizName: string;
     quizCode: string;
-    timeLimit: number;
     description: string;
     questions: Question[];
   }) => void;
@@ -44,6 +43,7 @@ function createQuestion(): Question {
     options,
     correctOption: "",
     points: 1,
+    timeLimit: 30,
   };
 }
 
@@ -61,7 +61,6 @@ function QuizFormContent({
       return {
         quizName: quiz.quizName,
         quizCode: quiz.quizCode,
-        timeLimit: quiz.timeLimit,
         description: quiz.description,
         questions: quiz.questions,
       };
@@ -69,7 +68,6 @@ function QuizFormContent({
     return {
       quizName: "",
       quizCode: "",
-      timeLimit: 10,
       description: "",
       questions: [createQuestion()],
     };
@@ -77,7 +75,6 @@ function QuizFormContent({
 
   const [quizName, setQuizName] = useState(initialState.quizName);
   const [quizCode, setQuizCode] = useState(initialState.quizCode);
-  const [timeLimit, setTimeLimit] = useState(initialState.timeLimit);
   const [description, setDescription] = useState(initialState.description);
   const [questions, setQuestions] = useState<Question[]>(initialState.questions);
 
@@ -152,7 +149,6 @@ function QuizFormContent({
     onSave({
       quizName,
       quizCode: quizCode.toUpperCase(),
-      timeLimit,
       description,
       questions,
     });
@@ -162,7 +158,6 @@ function QuizFormContent({
   const isValid =
     quizName.trim() &&
     quizCode.trim() &&
-    timeLimit > 0 &&
     description.trim() &&
     questions.length > 0 &&
     questions.every(
@@ -170,7 +165,8 @@ function QuizFormContent({
         q.question.trim() &&
         q.options.length >= 2 &&
         q.options.every((o) => o.text.trim()) &&
-        q.correctOption
+        q.correctOption &&
+        q.timeLimit > 0
     );
 
   return (
@@ -208,26 +204,14 @@ function QuizFormContent({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="timeLimit">Time Limit (minutes)</Label>
-              <Input
-                id="timeLimit"
-                type="number"
-                min={1}
-                value={timeLimit}
-                onChange={(e) => setTimeLimit(Number(e.target.value))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Brief description"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Input
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief description"
+            />
           </div>
 
           <Separator />
@@ -267,6 +251,18 @@ function QuizFormContent({
                         value={q.points ?? 1}
                         onChange={(e) =>
                           updateQuestion(qIndex, "points", Number(e.target.value))
+                        }
+                        className="h-7 w-16 text-xs"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Label className="text-xs">Time (s):</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={q.timeLimit}
+                        onChange={(e) =>
+                          updateQuestion(qIndex, "timeLimit", Number(e.target.value))
                         }
                         className="h-7 w-16 text-xs"
                       />

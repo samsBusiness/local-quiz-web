@@ -1,4 +1,4 @@
-import { Quiz } from "../models/";
+import { Quiz, Session } from "../models/";
 import { ServiceResponseType } from "../types/api";
 import { CreateQuizDto, UpdateQuizDto, QuestionDto } from "../dtos/Quiz";
 import { v4 as uuidv4 } from "uuid";
@@ -35,11 +35,12 @@ function addQuestionIds(
 
 // Helper to remove IDs from questions before saving
 function removeQuestionIds(questions: QuestionDto[]): IQuestion[] {
-  return questions.map(({ question, options, correctOption, points }) => ({
+  return questions.map(({ question, options, correctOption, points, timeLimit }) => ({
     question,
     options,
     correctOption,
     points,
+    timeLimit
   }));
 }
 
@@ -155,7 +156,7 @@ export const updateQuizService = async (
     if (updateData.quizName !== undefined) quiz.quizName = updateData.quizName;
     if (updateData.quizCode !== undefined) quiz.quizCode = updateData.quizCode;
     if (updateData.timeLimit !== undefined)
-      quiz.timeLimit = updateData.timeLimit;
+      quiz.timeLimit = updateData.timeLimit || 10;
     if (updateData.description !== undefined)
       quiz.description = updateData.description;
     if (updateData.questions !== undefined)
@@ -192,6 +193,7 @@ export const deleteQuizService = async (
       };
     }
 
+    await Session.deleteMany({ quiz: quizId });
     await Quiz.findByIdAndDelete(quizId);
 
     return {

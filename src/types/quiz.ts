@@ -9,6 +9,7 @@ export interface Question {
   options: Option[];
   correctOption: string;
   points?: number;
+  timeLimit: number;
 }
 
 export interface Quiz {
