@@ -15,15 +15,7 @@ export const createSessionController = async (
 ): Promise<ModifiedNextResponse> => {
   const body = await request.json() as CreateSessionDto;
 
-  const validatedBody = {
-    ...body,
-    attendees: body.attendees?.filter(
-      (attendee): attendee is { name: string; score: string; userId: string } =>
-        attendee.userId !== undefined
-    ),
-  };
-
-  const result = await createSessionService(validatedBody);
+  const result = await createSessionService(body);
 
   return NextResponse.json(result, { status: result.status });
 };
