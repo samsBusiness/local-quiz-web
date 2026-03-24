@@ -3,6 +3,7 @@
 import { BookOpen, Users, LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Sidebar,
   SidebarContent,
@@ -43,16 +44,20 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
+      <SidebarHeader className="hidden md:flex">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold text-sm">
-                  L
-                </div>
+                <Image
+                  src="/tech21-logo.png"
+                  alt="Tech 21"
+                  width={32}
+                  height={32}
+                  className="rounded-lg"
+                />
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Locahoot</span>
+                  <span className="truncate font-semibold">Tech 21</span>
                   <span className="truncate text-xs text-muted-foreground">
                     Quiz Platform
                   </span>

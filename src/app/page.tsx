@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
-import { Toast } from "radix-ui";
 import { toast } from "sonner";
+import Image from "next/image";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
@@ -58,15 +58,16 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 font-sans">
+    <div className="flex min-h-screen items-center justify-center font-sans">
       <main className="flex flex-col items-center justify-center gap-8 p-8 text-center">
         <div className="flex flex-col items-center gap-4">
-          <h1 className="text-5xl font-bold text-gray-900 mb-2">
-            Welcome to
-          </h1>
-          <h2 className="text-6xl font-bold text-indigo-600 mb-8">
-            Locahoot
-          </h2>
+          <Image
+            src="/tech21-logo.png"
+            alt="Tech 21"
+            width={300}
+            height={300}
+            className="mb-2"
+          />
           <p className="text-xl text-gray-600 max-w-md">
             Your interactive quiz platform for engaging learning experiences
           </p>

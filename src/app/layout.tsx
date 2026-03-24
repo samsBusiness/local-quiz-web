@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Locahoot - Interactive Quiz Platform",
+  title: "Tech 21 - Interactive Quiz Platform",
   description: "Your interactive quiz platform for engaging learning experiences",
 };
 

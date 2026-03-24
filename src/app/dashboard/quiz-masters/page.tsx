@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,8 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/contexts/auth-context";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/auth-context";
 
 interface WhitelistEntry {
   name: string;
@@ -47,6 +49,14 @@ export default function QuizMastersPage() {
     email: "",
     role: "QM" as "SUPER_ADMIN" | "QM",
   });
+  
+  // Loading states
+  const [isAdding, setIsAdding] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  
+  // Confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [emailToDelete, setEmailToDelete] = useState<string>("");
 
   // Redirect if not super_admin
   useEffect(() => {
@@ -80,6 +90,7 @@ export default function QuizMastersPage() {
   const handleAdd = async () => {
     if (!formData.name.trim() || !formData.email.trim()) return;
 
+    setIsAdding(true);
     try {
       const token = localStorage.getItem("token");
       const updatedWhitelist = [...whitelist, formData];
@@ -100,13 +111,27 @@ export default function QuizMastersPage() {
         setWhitelist(updatedWhitelist);
         setShowAddModal(false);
         setFormData({ name: "", email: "", role: "QM" });
+        toast.success(`Quiz master "${formData.name}" added successfully`);
+      } else {
+        toast.error(result.message || "Failed to add quiz master");
       }
     } catch (error) {
       console.error("Failed to add quiz master:", error);
+      toast.error("Failed to add quiz master");
+    } finally {
+      setIsAdding(false);
     }
   };
 
-  const handleDelete = async (emailToDelete: string) => {
+  const handleDelete = async (email: string) => {
+    setEmailToDelete(email);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!emailToDelete) return;
+    
+    setIsDeleting(emailToDelete);
     try {
       const token = localStorage.getItem("token");
       const updatedWhitelist = whitelist.filter(
@@ -127,12 +152,18 @@ export default function QuizMastersPage() {
       const result = await res.json();
       if (result.status === 200) {
         setWhitelist(updatedWhitelist);
+        const deletedEntry = whitelist.find(entry => entry.email === emailToDelete);
+        toast.success(`Quiz master "${deletedEntry?.name}" deleted successfully`);
       } else {
-        toast.error(result.message);
+        toast.error(result.message || "Failed to delete quiz master");
       }
     } catch (error) {
       console.error("Failed to delete quiz master:", error);
-      toast.error("Failed to remove quiz master.");
+      toast.error("Failed to delete quiz master");
+    } finally {
+      setIsDeleting(null);
+      setDeleteDialogOpen(false);
+      setEmailToDelete("");
     }
   };
 
@@ -148,7 +179,7 @@ export default function QuizMastersPage() {
             Manage quiz masters and super admins
           </p>
         </div>
-        <Button onClick={() => setShowAddModal(true)}>
+        <Button onClick={() => setShowAddModal(true)} disabled={isAdding}>
           <Plus className="mr-2 h-4 w-4" />
           Add Quiz Master
         </Button>
@@ -168,7 +199,11 @@ export default function QuizMastersPage() {
             {loading ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-8">
-                  Loading...
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32 mx-auto" />
+                    <Skeleton className="h-3 w-24 mx-auto" />
+                    <Skeleton className="h-3 w-20 mx-auto" />
+                  </div>
                 </TableCell>
               </TableRow>
             ) : whitelist.length === 0 ? (
@@ -200,8 +235,13 @@ export default function QuizMastersPage() {
                       size="sm"
                       onClick={() => handleDelete(entry.email)}
                       className="text-destructive hover:text-destructive"
+                      disabled={isDeleting === entry.email}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {isDeleting === entry.email ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -266,11 +306,43 @@ export default function QuizMastersPage() {
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setShowAddModal(false)}>
+            <Button variant="outline" onClick={() => setShowAddModal(false)} disabled={isAdding}>
               Cancel
             </Button>
-            <Button onClick={handleAdd}>Add</Button>
+            <Button onClick={handleAdd} disabled={isAdding}>
+              {isAdding ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Adding...
+                </>
+              ) : (
+                "Add"
+              )}
+            </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Quiz Master</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this quiz master? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting !== null}>
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmDelete}
+              disabled={isDeleting !== null}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

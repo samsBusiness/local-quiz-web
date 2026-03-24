@@ -5,7 +5,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Clock,
   HelpCircle,
   MoreHorizontal,
 } from "lucide-react";
@@ -27,6 +26,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { QuizFormModal } from "@/components/quiz-form-modal";
 import { SessionsModal } from "@/components/sessions-modal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 import type { Quiz, Question } from "@/types/quiz";
 
 function getAuthHeaders() {
@@ -49,6 +58,14 @@ export default function DashboardPage() {
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [selectedQuizName, setSelectedQuizName] = useState("");
+  
+  // Loading states
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [quizToDelete, setQuizToDelete] = useState<Quiz | null>(null);
 
   const fetchQuizzes = useCallback(async () => {
     try {
@@ -81,19 +98,35 @@ export default function DashboardPage() {
   };
 
   const handleDelete = async (quizId: string) => {
-    if (!confirm("Are you sure you want to delete this quiz?")) return;
+    const quiz = quizzes.find(q => q._id === quizId);
+    if (!quiz) return;
+    setQuizToDelete(quiz);
+    setDeleteDialogOpen(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!quizToDelete) return;
+    
+    setIsDeleting(quizToDelete._id);
     try {
-      const res = await fetch(`/api/quiz/${quizId}`, {
+      const res = await fetch(`/api/quiz/${quizToDelete._id}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
       const data = await res.json();
       if (data.status === 200) {
-        setQuizzes((prev) => prev.filter((q) => q._id !== quizId));
+        setQuizzes((prev) => prev.filter((q) => q._id !== quizToDelete._id));
+        toast.success(`Quiz "${quizToDelete.quizName}" deleted successfully`);
+      } else {
+        toast.error(data.message || "Failed to delete quiz");
       }
     } catch (error) {
       console.error("Failed to delete quiz:", error);
+      toast.error("Failed to delete quiz");
+    } finally {
+      setIsDeleting(null);
+      setDeleteDialogOpen(false);
+      setQuizToDelete(null);
     }
   };
 
@@ -103,6 +136,7 @@ export default function DashboardPage() {
     description: string;
     questions: Question[];
   }) => {
+    setIsSaving(true);
     try {
       if (editingQuiz) {
         const res = await fetch(`/api/quiz/${editingQuiz._id}`, {
@@ -117,6 +151,9 @@ export default function DashboardPage() {
               q._id === editingQuiz._id ? { ...q, ...data.data.quiz } : q
             )
           );
+          toast.success(`Quiz "${formData.quizName}" updated successfully`);
+        } else {
+          toast.error(data.message || "Failed to update quiz");
         }
       } else {
         const res = await fetch("/api/quiz", {
@@ -127,10 +164,16 @@ export default function DashboardPage() {
         const data = await res.json();
         if (data.status === 201 || data.status === 200) {
           fetchQuizzes();
+          toast.success(`Quiz "${formData.quizName}" created successfully`);
+        } else {
+          toast.error(data.message || "Failed to create quiz");
         }
       }
     } catch (error) {
       console.error("Failed to save quiz:", error);
+      toast.error("Failed to save quiz");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -149,7 +192,7 @@ export default function DashboardPage() {
             Manage your quizzes and view sessions.
           </p>
         </div>
-        <Button onClick={handleCreate}>
+        <Button onClick={handleCreate} disabled={isSaving}>
           <Plus className="mr-2 h-4 w-4" />
           Create Quiz
         </Button>
@@ -170,7 +213,11 @@ export default function DashboardPage() {
             {loading ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12">
-                  <p className="text-muted-foreground">Loading quizzes...</p>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32 mx-auto" />
+                    <Skeleton className="h-3 w-24 mx-auto" />
+                    <Skeleton className="h-3 w-20 mx-auto" />
+                  </div>
                 </TableCell>
               </TableRow>
             ) : quizzes.length === 0 ? (
@@ -199,7 +246,7 @@ export default function DashboardPage() {
                   <TableCell>
                     <button
                       onClick={() => handleViewSessions(quiz)}
-                      className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline transition-colors text-left"
+                      className="font-medium text-primary hover:text-primary/80 hover:underline transition-colors text-left"
                     >
                       {quiz.quizName}
                     </button>
@@ -233,9 +280,19 @@ export default function DashboardPage() {
                         <DropdownMenuItem
                           onClick={() => handleDelete(quiz._id)}
                           className="text-destructive focus:text-destructive"
+                          disabled={isDeleting === quiz._id}
                         >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
+                          {isDeleting === quiz._id ? (
+                            <>
+                              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </>
+                          )}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -252,6 +309,7 @@ export default function DashboardPage() {
         onOpenChange={setFormOpen}
         quiz={editingQuiz}
         onSave={handleSave}
+        isSaving={isSaving}
       />
 
       <SessionsModal
@@ -260,6 +318,29 @@ export default function DashboardPage() {
         quizId={selectedQuizId}
         quizName={selectedQuizName}
       />
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Quiz</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{quizToDelete?.quizName}&quot;? This action cannot be undone and will also delete all associated sessions.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting !== null}>
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmDelete}
+              disabled={isDeleting !== null}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -29,6 +29,7 @@ interface QuizFormModalProps {
     description: string;
     questions: Question[];
   }) => void;
+  isSaving?: boolean;
 }
 
 function createOption(): Option {
@@ -51,10 +52,12 @@ function QuizFormContent({
   quiz,
   onSave,
   onClose,
+  isSaving,
 }: {
   quiz?: Quiz | null;
   onSave: QuizFormModalProps["onSave"];
   onClose: () => void;
+  isSaving?: boolean;
 }) {
   const initialState = useMemo(() => {
     if (quiz) {
@@ -146,11 +149,17 @@ function QuizFormContent({
   };
 
   const handleSubmit = () => {
+    // Always set points to 10 for each question
+    const questionsWithPoints = questions.map(q => ({
+      ...q,
+      points: 10
+    }));
+    
     onSave({
       quizName,
       quizCode: quizCode.toUpperCase(),
       description,
-      questions,
+      questions: questionsWithPoints,
     });
     onClose();
   };
@@ -244,28 +253,17 @@ function QuizFormContent({
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1">
-                      <Label className="text-xs">Points:</Label>
+                      <Label className="text-xs">Time:</Label>
                       <Input
                         type="number"
-                        min={1}
-                        value={q.points ?? 1}
-                        onChange={(e) =>
-                          updateQuestion(qIndex, "points", Number(e.target.value))
-                        }
-                        className="h-7 w-16 text-xs"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Label className="text-xs">Time (s):</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={q.timeLimit}
+                        min={5}
+                        value={q.timeLimit ?? 30}
                         onChange={(e) =>
                           updateQuestion(qIndex, "timeLimit", Number(e.target.value))
                         }
                         className="h-7 w-16 text-xs"
                       />
+                      <span className="text-xs text-muted-foreground">sec</span>
                     </div>
                     <Button
                       type="button"
@@ -346,8 +344,15 @@ function QuizFormContent({
         <Button variant="outline" onClick={onClose}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={!isValid}>
-          {quiz ? "Update Quiz" : "Create Quiz"}
+        <Button onClick={handleSubmit} disabled={!isValid || isSaving}>
+          {isSaving ? (
+            <>
+              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              {quiz ? "Updating..." : "Creating..."}
+            </>
+          ) : (
+            <>{quiz ? "Update Quiz" : "Create Quiz"}</>
+          )}
         </Button>
       </DialogFooter>
     </>
@@ -359,6 +364,7 @@ export function QuizFormModal({
   onOpenChange,
   quiz,
   onSave,
+  isSaving,
 }: QuizFormModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -369,6 +375,7 @@ export function QuizFormModal({
             quiz={quiz}
             onSave={onSave}
             onClose={() => onOpenChange(false)}
+            isSaving={isSaving}
           />
         )}
       </DialogContent>
