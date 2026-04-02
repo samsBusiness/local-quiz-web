@@ -7,6 +7,7 @@ import {
   Trash2,
   HelpCircle,
   MoreHorizontal,
+  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,6 +50,7 @@ function getAuthHeaders() {
 export default function DashboardPage() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sessionCounts, setSessionCounts] = useState<Record<string, number>>({});
 
   // Quiz form modal state
   const [formOpen, setFormOpen] = useState(false);
@@ -67,6 +69,31 @@ export default function DashboardPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quizToDelete, setQuizToDelete] = useState<Quiz | null>(null);
 
+  const fetchSessionCounts = useCallback(async (quizIds: string[]) => {
+    try {
+      const counts: Record<string, number> = {};
+      
+      // Fetch sessions for each quiz
+      await Promise.all(
+        quizIds.map(async (quizId) => {
+          const res = await fetch(`/api/session?quizId=${quizId}`, {
+            headers: getAuthHeaders(),
+          });
+          const data = await res.json();
+          if (data.status === 200) {
+            counts[quizId] = data.data.sessions?.length || 0;
+          } else {
+            counts[quizId] = 0;
+          }
+        })
+      );
+      
+      setSessionCounts(counts);
+    } catch (error) {
+      console.error("Failed to fetch session counts:", error);
+    }
+  }, []);
+
   const fetchQuizzes = useCallback(async () => {
     try {
       const res = await fetch("/api/quiz", {
@@ -74,14 +101,20 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (data.status === 200) {
-        setQuizzes(data.data.quizzes ?? []);
+        const quizzes = data.data.quizzes ?? [];
+        setQuizzes(quizzes);
+        
+        // Fetch session counts for all quizzes
+        if (quizzes.length > 0) {
+          await fetchSessionCounts(quizzes.map((q: Quiz) => q._id));
+        }
       }
     } catch (error) {
       console.error("Failed to fetch quizzes:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchSessionCounts]);
 
   useEffect(() => {
     fetchQuizzes();
@@ -116,6 +149,12 @@ export default function DashboardPage() {
       const data = await res.json();
       if (data.status === 200) {
         setQuizzes((prev) => prev.filter((q) => q._id !== quizToDelete._id));
+        // Remove session count for deleted quiz
+        setSessionCounts((prev) => {
+          const newCounts = { ...prev };
+          delete newCounts[quizToDelete._id];
+          return newCounts;
+        });
         toast.success(`Quiz "${quizToDelete.quizName}" deleted successfully`);
       } else {
         toast.error(data.message || "Failed to delete quiz");
@@ -205,6 +244,7 @@ export default function DashboardPage() {
               <TableHead>Name</TableHead>
               <TableHead>Code</TableHead>
               <TableHead>Questions</TableHead>
+              <TableHead>Sessions</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="w-16">Actions</TableHead>
             </TableRow>
@@ -212,7 +252,7 @@ export default function DashboardPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12">
+                <TableCell colSpan={7} className="text-center py-12">
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-32 mx-auto" />
                     <Skeleton className="h-3 w-24 mx-auto" />
@@ -222,7 +262,7 @@ export default function DashboardPage() {
               </TableRow>
             ) : quizzes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12">
+                <TableCell colSpan={7} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <HelpCircle className="h-8 w-8 text-muted-foreground" />
                     <p className="text-muted-foreground">
@@ -260,6 +300,12 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <HelpCircle className="h-3.5 w-3.5" />
                       {quiz.questions.length}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <CalendarDays className="h-3.5 w-3.5" />
+                      {sessionCounts[quiz._id] || 0}
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">

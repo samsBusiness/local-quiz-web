@@ -137,6 +137,14 @@ function QuizFormContent({
     setValue("questions", [...getValues("questions"), createQuestion()], {
       shouldDirty: true,
     });
+    
+    // Scroll to the bottom after adding a new question
+    setTimeout(() => {
+      const scrollArea = document.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollArea) {
+        scrollArea.scrollTop = scrollArea.scrollHeight;
+      }
+    }, 0);
   };
 
   const removeQuestion = (qIndex: number) => {
@@ -245,203 +253,241 @@ function QuizFormContent({
         </DialogDescription>
       </DialogHeader>
 
-      <ScrollArea className="flex-1 h-0 pr-4 -mr-4">
-        <div className="space-y-6 pb-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="quizName">Quiz Name</Label>
-              <Input
-                id="quizName"
-                {...register("quizName")}
-                placeholder="Enter quiz name"
-              />
-              {errors.quizName ? (
-                <p className="text-sm text-destructive">{errors.quizName.message}</p>
-              ) : null}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="quizCode">Quiz Code</Label>
-              <Input
-                id="quizCode"
-                {...register("quizCode", {
-                  onChange: (event) => {
-                    setValue("quizCode", event.target.value.toUpperCase(), {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    });
-                  },
-                })}
-                placeholder="e.g. QUIZ001"
-                className="uppercase"
-              />
-              {errors.quizCode ? (
-                <p className="text-sm text-destructive">{errors.quizCode.message}</p>
-              ) : null}
-            </div>
-          </div>
-
+      <div className="flex-1 overflow-hidden">
+        <div className="space-y-6 pb-4 h-full flex flex-col">
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="quizName">Quiz Name</Label>
             <Input
-              id="description"
-              {...register("description")}
-              placeholder="Brief description"
+              id="quizName"
+              {...register("quizName")}
+              placeholder="Enter quiz name"
             />
-            {errors.description ? (
-              <p className="text-sm text-destructive">{errors.description.message}</p>
+            {errors.quizName ? (
+              <p className="text-sm text-destructive">
+                {errors.quizName.message}
+              </p>
             ) : null}
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="quizCode">Quiz Code</Label>
+            <Input
+              id="quizCode"
+              {...register("quizCode", {
+                onChange: (event) => {
+                  setValue("quizCode", event.target.value.toUpperCase(), {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                },
+              })}
+              placeholder="e.g. QUIZ001"
+              className="uppercase"
+            />
+            {errors.quizCode ? (
+              <p className="text-sm text-destructive">
+                {errors.quizCode.message}
+              </p>
+            ) : null}
+          </div>
+        </div>
 
-          <Separator />
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Input
+            id="description"
+            {...register("description")}
+            placeholder="Brief description"
+          />
+          {errors.description ? (
+            <p className="text-sm text-destructive">
+              {errors.description.message}
+            </p>
+          ) : null}
+        </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">
-                Questions ({questions.length})
-              </h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addQuestion}
-              >
-                <Plus className="mr-1 h-4 w-4" />
-                Add Question
-              </Button>
-            </div>
+        <Separator />
 
-            {questions.map((q, qIndex) => (
-              <div
-                key={q.id}
-                className="rounded-lg border bg-muted/30 p-4 space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <GripVertical className="h-4 w-4 text-muted-foreground" />
-                    <Badge variant="secondary">Q{qIndex + 1}</Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      <Label className="text-xs">Time:</Label>
-                      <Input
-                        type="number"
-                        min={5}
-                        value={q.timeLimit ?? 30}
-                        onChange={(e) => {
-                          updateQuestion(qIndex, "timeLimit", Number(e.target.value));
-                          void trigger(`questions.${qIndex}.timeLimit`);
-                        }}
-                        className="h-7 w-16 text-xs"
-                      />
-                      <span className="text-xs text-muted-foreground">sec</span>
+        <div className="space-y-4 flex flex-col h-full">
+          <div className="flex items-center justify-between border-b pb-4 shrink-0">
+            <h3 className="text-sm font-semibold">
+              Questions ({questions.length})
+            </h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addQuestion}
+              className="cursor-pointer"
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              Add Question
+            </Button>
+          </div>
+          <ScrollArea className="flex-1 min-h-[200px] max-h-[500px] pb-48">
+            <div className="space-y-8">
+              {questions.map((q, qIndex) => (
+                <div
+                  key={q.id}
+                  className="rounded-lg border bg-muted/30 p-4 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <GripVertical className="h-4 w-4 text-muted-foreground" />
+                      <Badge variant="secondary">Q{qIndex + 1}</Badge>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive"
-                      onClick={() => removeQuestion(qIndex)}
-                      disabled={questions.length <= 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {errors.questions?.[qIndex]?.timeLimit ? (
-                  <p className="text-sm text-destructive">
-                    {errors.questions[qIndex]?.timeLimit?.message as string}
-                  </p>
-                ) : null}
-
-                <Input
-                  value={q.question}
-                  onChange={(e) => {
-                    updateQuestion(qIndex, "question", e.target.value);
-                    void trigger(`questions.${qIndex}.question`);
-                  }}
-                  placeholder={`Enter question ${qIndex + 1}`}
-                />
-                {errors.questions?.[qIndex]?.question ? (
-                  <p className="text-sm text-destructive">
-                    {errors.questions[qIndex]?.question?.message as string}
-                  </p>
-                ) : null}
-
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">
-                    Options (click to mark as correct)
-                  </Label>
-                  {errors.questions?.[qIndex]?.correctOption ? (
-                    <p className="text-sm text-destructive">
-                      {errors.questions[qIndex]?.correctOption?.message as string}
-                    </p>
-                  ) : null}
-                  {typeof errors.questions?.[qIndex]?.options?.message === "string" ? (
-                    <p className="text-sm text-destructive">
-                      {errors.questions[qIndex]?.options?.message as string}
-                    </p>
-                  ) : null}
-                  {q.options.map((opt, oIndex) => (
-                    <div key={opt.id} className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCorrectOption(qIndex, opt.id);
-                          void trigger(`questions.${qIndex}.correctOption`);
-                        }}
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold transition-colors ${
-                          q.correctOption === opt.id
-                            ? "border-green-500 bg-green-500 text-white"
-                            : "border-muted-foreground/30 hover:border-green-400"
-                        }`}
-                      >
-                        {String.fromCharCode(65 + oIndex)}
-                      </button>
-                      <Input
-                        value={opt.text}
-                        onChange={(e) => {
-                          updateOptionText(qIndex, oIndex, e.target.value);
-                          void trigger(`questions.${qIndex}.options.${oIndex}.text`);
-                        }}
-                        placeholder={`Option ${String.fromCharCode(65 + oIndex)}`}
-                        className="h-8"
-                      />
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <Label className="text-xs">Time:</Label>
+                        <Input
+                          type="number"
+                          min={5}
+                          value={q.timeLimit ?? 30}
+                          onChange={(e) => {
+                            updateQuestion(
+                              qIndex,
+                              "timeLimit",
+                              Number(e.target.value),
+                            );
+                            void trigger(`questions.${qIndex}.timeLimit`);
+                          }}
+                          onKeyDown={(e) => {
+                            const input = e.currentTarget;
+                            if (
+                              input.value === "0" &&
+                              e.key !== "Backspace" &&
+                              e.key !== "Tab"
+                            ) {
+                              input.value = "";
+                            }
+                          }}
+                          className="h-7 w-16 text-xs"
+                        />
+                        <span className="text-xs text-muted-foreground">sec</span>
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 shrink-0 text-destructive"
-                        onClick={() => removeOption(qIndex, oIndex)}
-                        disabled={q.options.length <= 2}
+                        className="h-7 w-7 text-destructive"
+                        onClick={() => removeQuestion(qIndex)}
+                        disabled={questions.length <= 1}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  ))}
-                  {q.options.map((_, oIndex) =>
-                    errors.questions?.[qIndex]?.options?.[oIndex]?.text ? (
-                      <p key={`option-error-${q.id}-${oIndex}`} className="text-sm text-destructive">
-                        {errors.questions[qIndex]?.options?.[oIndex]?.text?.message as string}
+                  </div>
+
+                  {errors.questions?.[qIndex]?.timeLimit ? (
+                    <p className="text-sm text-destructive">
+                      {errors.questions[qIndex]?.timeLimit?.message as string}
+                    </p>
+                  ) : null}
+
+                  <Input
+                    value={q.question}
+                    onChange={(e) => {
+                      updateQuestion(qIndex, "question", e.target.value);
+                      void trigger(`questions.${qIndex}.question`);
+                    }}
+                    placeholder={`Enter question ${qIndex + 1}`}
+                  />
+                  {errors.questions?.[qIndex]?.question ? (
+                    <p className="text-sm text-destructive">
+                      {errors.questions[qIndex]?.question?.message as string}
+                    </p>
+                  ) : null}
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Options (click to mark as correct)
+                    </Label>
+                    {errors.questions?.[qIndex]?.correctOption ? (
+                      <p className="text-sm text-destructive">
+                        {
+                          errors.questions[qIndex]?.correctOption
+                            ?.message as string
+                        }
                       </p>
-                    ) : null
-                  )}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => addOption(qIndex)}
-                    className="text-xs"
-                  >
-                    <Plus className="mr-1 h-3 w-3" />
-                    Add Option
-                  </Button>
+                    ) : null}
+                    {typeof errors.questions?.[qIndex]?.options?.message ===
+                    "string" ? (
+                      <p className="text-sm text-destructive">
+                        {errors.questions[qIndex]?.options?.message as string}
+                      </p>
+                    ) : null}
+                    {q.options.map((opt, oIndex) => (
+                      <div key={opt.id} className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCorrectOption(qIndex, opt.id);
+                            void trigger(`questions.${qIndex}.correctOption`);
+                          }}
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold transition-colors ${
+                            q.correctOption === opt.id
+                              ? "border-green-500 bg-green-500 text-white"
+                              : "border-muted-foreground/30 hover:border-green-400"
+                          }`}
+                        >
+                          {String.fromCharCode(65 + oIndex)}
+                        </button>
+                        <Input
+                          value={opt.text}
+                          onChange={(e) => {
+                            updateOptionText(qIndex, oIndex, e.target.value);
+                            void trigger(
+                              `questions.${qIndex}.options.${oIndex}.text`,
+                            );
+                          }}
+                          placeholder={`Option ${String.fromCharCode(65 + oIndex)}`}
+                          className="h-8"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-destructive"
+                          onClick={() => removeOption(qIndex, oIndex)}
+                          disabled={q.options.length <= 2}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    {q.options.map((_, oIndex) =>
+                      errors.questions?.[qIndex]?.options?.[oIndex]?.text ? (
+                        <p
+                          key={`option-error-${q.id}-${oIndex}`}
+                          className="text-sm text-destructive"
+                        >
+                          {
+                            errors.questions[qIndex]?.options?.[oIndex]?.text
+                              ?.message as string
+                          }
+                        </p>
+                      ) : null,
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => addOption(qIndex)}
+                      className="text-xs cursor-pointer"
+                    >
+                      <Plus className="mr-1 h-3 w-3" />
+                      Add Option
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </ScrollArea>
           </div>
         </div>
-      </ScrollArea>
+      </div>
+      {/* <ScrollArea className="flex-1 h-0 pr-4 -mr-4">
+      </ScrollArea> */}
 
       <DialogFooter className="shrink-0">
         <Button variant="outline" onClick={onClose}>
@@ -471,7 +517,7 @@ export function QuizFormModal({
 }: QuizFormModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[85vh] max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="w-[90vw] h-[85vh] max-h-[85vh] flex flex-col overflow-hidden">
         {open && (
           <QuizFormContent
             key={quiz?._id ?? "new"}

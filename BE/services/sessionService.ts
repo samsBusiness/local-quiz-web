@@ -41,9 +41,16 @@ export const createSessionService = async (
   }
 };
 
-export const getSessionsService = async (): Promise<ServiceResponseType> => {
+export const getSessionsService = async (quizId?: string): Promise<ServiceResponseType> => {
   try {
-    const sessions = await Session.find()
+    let query = {};
+    
+    // If quizId is provided, filter sessions by that quiz
+    if (quizId) {
+      query = { quiz: new Types.ObjectId(quizId) };
+    }
+    
+    const sessions = await Session.find(query)
       .populate('quizMaster', 'name email')
       .populate('quiz', 'quizName quizCode')
       .sort({ date: -1 });

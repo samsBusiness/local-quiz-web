@@ -23,7 +23,10 @@ export const createSessionController = async (
 export const getSessionsController = async (
   request: ModifiedNextRequest
 ): Promise<ModifiedNextResponse> => {
-  const result = await getSessionsService();
+  const { searchParams } = new URL(request.url);
+  const quizId = searchParams.get('quizId');
+  
+  const result = await getSessionsService(quizId || undefined);
 
   return NextResponse.json(result, { status: result.status });
 };
