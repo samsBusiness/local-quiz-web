@@ -8,6 +8,7 @@ import {
   HelpCircle,
   MoreHorizontal,
   CalendarDays,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,6 +65,7 @@ export default function DashboardPage() {
   // Loading states
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Confirmation dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -123,6 +125,12 @@ export default function DashboardPage() {
   const handleCreate = () => {
     setEditingQuiz(null);
     setFormOpen(true);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchQuizzes();
+    setIsRefreshing(false);
   };
 
   const handleEdit = (quiz: Quiz) => {
@@ -231,10 +239,15 @@ export default function DashboardPage() {
             Manage your quizzes and view sessions.
           </p>
         </div>
-        <Button onClick={handleCreate} disabled={isSaving}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Quiz
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button onClick={handleCreate} disabled={isSaving}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Quiz
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border">
