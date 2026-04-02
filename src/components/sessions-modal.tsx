@@ -40,7 +40,9 @@ export function SessionsModal({
 }: SessionsModalProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
-  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(
+    null,
+  );
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
@@ -74,14 +76,14 @@ export function SessionsModal({
       const token = localStorage.getItem("token");
       const res = await fetch(`/api/session/${sessionId}`, {
         method: "DELETE",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`,
         },
       });
       const data = await res.json();
       if (data.status === 200) {
-        setSessions(prev => prev.filter(s => s._id !== sessionId));
+        setSessions((prev) => prev.filter((s) => s._id !== sessionId));
       }
     } catch (error) {
       console.error("Failed to delete session:", error);
@@ -105,42 +107,77 @@ export function SessionsModal({
 
   const formatSessionIdentifier = (session: Session): string => {
     const date = new Date(session.date);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
     const year = date.getFullYear().toString().slice(-2);
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+
     return `${session.quizMaster.name}: ${day}-${month}-${year} ${hours}:${minutes}`;
   };
 
   const overallScoreboard = useMemo(() => {
-    const scoreMap = new Map<string, { name: string; totalScore: number; sessionIdentifiers: string[], userId: string }>();
+    const employeeMap = new Map<
+      string,
+      {
+        name: string;
+        totalScore: number;
+        sessionIdentifier: string;
+        userId: string;
+        sessionDate: Date;
+      }
+    >();
+
+    // Process all sessions to find earliest for each employee
     for (const session of sessions) {
+      const sessionDate = new Date(session.date);
       const sessionIdentifier = formatSessionIdentifier(session);
+
       for (const attendee of session.attendees) {
-        const existing = scoreMap.get(attendee.userId || attendee.name);
-        if (existing) {
-          existing.totalScore = Math.max(existing.totalScore, attendee.score);
-          existing.sessionIdentifiers.push(sessionIdentifier);
-        } else {
-          scoreMap.set(attendee.userId ? attendee.userId : attendee.name, {
+        const key = attendee.userId || attendee.name;
+        const existing = employeeMap.get(key);
+
+        if (!existing || sessionDate < existing.sessionDate) {
+          // If no existing entry or this session is earlier, update
+          employeeMap.set(key, {
             name: attendee.name,
             totalScore: attendee.score,
-            sessionIdentifiers: [sessionIdentifier],
+            sessionIdentifier,
             userId: attendee.userId,
+            sessionDate,
           });
         }
       }
     }
-    return [...scoreMap.values()]
-      .map((entry) => ({ 
-        name: entry.name, 
-        totalScore: entry.totalScore, 
-        sessionIdentifiers: entry.sessionIdentifiers, 
-        userId: entry.userId 
-      }))
-      .sort((a, b) => b.totalScore - a.totalScore);
+
+    return [...employeeMap.values()].sort(
+      (a, b) => b.totalScore - a.totalScore,
+    );
+  }, [sessions]);
+
+  const detailedScores = useMemo(() => {
+    const allScores: {
+      name: string;
+      userId: string;
+      sessionIdentifier: string;
+      score: number;
+    }[] = [];
+
+    // Collect all session scores
+    for (const session of sessions) {
+      const sessionIdentifier = formatSessionIdentifier(session);
+      for (const attendee of session.attendees) {
+        allScores.push({
+          name: attendee.name,
+          userId: attendee.userId || attendee.name,
+          sessionIdentifier,
+          score: attendee.score,
+        });
+      }
+    }
+
+    // Sort by employee code (userId)
+    return allScores.sort((a, b) => a.userId.localeCompare(b.userId));
   }, [sessions]);
 
   return (
@@ -167,6 +204,10 @@ export function SessionsModal({
                 <Trophy className="h-4 w-4" />
                 Overall Scoreboard
               </TabsTrigger>
+              <TabsTrigger value="detailed">
+                <Users className="h-4 w-4" />
+                Detailed Scores
+              </TabsTrigger>
               <TabsTrigger value="sessions">
                 <CalendarDays className="h-4 w-4" />
                 Sessions
@@ -189,7 +230,9 @@ export function SessionsModal({
                           <TableHead>Attendee</TableHead>
                           <TableHead>Emp Code</TableHead>
                           <TableHead className="text-left">Session</TableHead>
-                          <TableHead className="text-right">Total Score</TableHead>
+                          <TableHead className="text-right">
+                            Total Score
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -202,19 +245,69 @@ export function SessionsModal({
                                 index + 1
                               )}
                             </TableCell>
-                            <TableCell className="font-medium">{entry.name}</TableCell>
-                            <TableCell className="text-muted-foreground">{entry.userId}</TableCell>
+                            <TableCell className="font-medium">
+                              {entry.name}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {entry.userId}
+                            </TableCell>
                             <TableCell className="text-left text-muted-foreground max-w-xs">
-                              <div className="text-xs space-y-1">
-                                {entry.sessionIdentifiers.map((identifier, index) => (
-                                  <div key={index} className="truncate" title={identifier}>
-                                    {identifier}
-                                  </div>
-                                ))}
+                              <div
+                                className="text-xs truncate"
+                                title={entry.sessionIdentifier}
+                              >
+                                {entry.sessionIdentifier}
                               </div>
                             </TableCell>
                             <TableCell className="text-right font-semibold">
                               {entry.totalScore}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="detailed" className="flex-1 h-0 mt-2">
+              <ScrollArea className="h-full pr-4 -mr-4">
+                {detailedScores.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Users className="h-10 w-10 text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">No scores yet.</p>
+                  </div>
+                ) : (
+                  <div className="pb-4">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Emp Name</TableHead>
+                          <TableHead>Emp Code</TableHead>
+                          <TableHead>Session</TableHead>
+                          <TableHead className="text-right">Score</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {detailedScores.map((entry, index) => (
+                          <TableRow key={`${entry.userId}-${index}`}>
+                            <TableCell className="font-medium">
+                              {entry.name}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {entry.userId}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground max-w-xs">
+                              <div
+                                className="text-xs truncate"
+                                title={entry.sessionIdentifier}
+                              >
+                                {entry.sessionIdentifier}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-semibold">
+                              {entry.score}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -248,19 +341,24 @@ export function SessionsModal({
                                 QM: {session.quizMaster?.name ?? "N/A"}
                               </span>
                               <Badge
-                                variant={session.isActive ? "default" : "secondary"}
+                                variant={
+                                  session.isActive ? "default" : "secondary"
+                                }
                               >
                                 {session.isActive ? "Active" : "Ended"}
                               </Badge>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {new Date(session.date).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {new Date(session.date).toLocaleDateString(
+                                "en-US",
+                                {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
@@ -293,7 +391,9 @@ export function SessionsModal({
                                   <TableHead className="w-12">#</TableHead>
                                   <TableHead>Attendee</TableHead>
                                   <TableHead>Emp Code</TableHead>
-                                  <TableHead className="text-right">Score</TableHead>
+                                  <TableHead className="text-right">
+                                    Score
+                                  </TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -331,19 +431,28 @@ export function SessionsModal({
             </TabsContent>
           </Tabs>
         )}
-        
+
         {/* Delete Confirmation Dialog */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="max-w-md! w-md!" style={{ maxWidth: '28rem', width: '28rem' }}>
+          <DialogContent style={{ maxWidth: "28rem", width: "28rem" }}>
             <DialogHeader>
               <DialogTitle>Delete Session</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete this session? This action cannot be undone.
+                Are you sure you want to delete this session? This action cannot
+                be undone.
                 {sessionToDelete && (
                   <div className="mt-2 p-2 bg-muted rounded text-sm">
-                    <div><strong>QM:</strong> {sessionToDelete.quizMaster?.name}</div>
-                    <div><strong>Date:</strong> {new Date(sessionToDelete.date).toLocaleDateString()}</div>
-                    <div><strong>Attendees:</strong> {sessionToDelete.attendees.length}</div>
+                    <div>
+                      <strong>QM:</strong> {sessionToDelete.quizMaster?.name}
+                    </div>
+                    <div>
+                      <strong>Date:</strong>{" "}
+                      {new Date(sessionToDelete.date).toLocaleDateString()}
+                    </div>
+                    <div>
+                      <strong>Attendees:</strong>{" "}
+                      {sessionToDelete.attendees.length}
+                    </div>
                   </div>
                 )}
               </DialogDescription>
