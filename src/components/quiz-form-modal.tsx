@@ -31,8 +31,10 @@ const questionSchema = z.object({
   id: z.string(),
   question: z.string().trim().min(1, "Question text is required").max(500, "Question text must be 500 characters or less"),
   options: z.array(optionSchema).min(2, "At least 2 options are required"),
+  questionType: z.enum(["single", "multiple"]),
   correctOption: z.string().min(1, "Select the correct option"),
-  points: z.number(),
+  correctOptions: z.array(z.string()).optional(),
+  points: z.number().min(1),
   timeLimit: z.number().min(5, "Time must be at least 5 seconds").max(300, "Time must be 300 seconds or less"),
 });
 
@@ -70,8 +72,10 @@ function normalizeQuestion(question: Question): QuizFormValues["questions"][numb
       id: option.id,
       text: option.text,
     })),
+    questionType: question.questionType ?? "single",
     correctOption: question.correctOption,
-    points: 10,
+    correctOptions: question.correctOptions ?? [],
+    points: question.points ?? 10,
     timeLimit: question.timeLimit ?? 30,
   };
 }
@@ -82,7 +86,9 @@ function createQuestion(): QuizFormValues["questions"][number] {
     id: uuidv4(),
     question: "",
     options,
+    questionType: "single",
     correctOption: "",
+    correctOptions: [],
     points: 10,
     timeLimit: 30,
   };
@@ -236,10 +242,36 @@ function QuizFormContent({
           ...option,
           text: option.text.trim(),
         })),
-        points: 10,
+        // For multi-select: derive correctOption from first correctOptions entry for backward compat
+        correctOption:
+          question.questionType === "multiple" && question.correctOptions?.length
+            ? question.correctOptions[0]
+            : question.correctOption,
+        correctOptions:
+          question.questionType === "multiple" ? question.correctOptions : undefined,
       })),
     });
     onClose();
+  };
+
+  const toggleCorrectOption = (qIndex: number, optionId: string) => {
+    const q = getValues(`questions.${qIndex}`);
+    if (q.questionType === "multiple") {
+      const current = q.correctOptions ?? [];
+      const updated = current.includes(optionId)
+        ? current.filter((id: string) => id !== optionId)
+        : [...current, optionId];
+      setValue(
+        "questions",
+        getValues("questions").map((question, i) =>
+          i === qIndex ? { ...question, correctOptions: updated } : question,
+        ),
+        { shouldDirty: true, shouldValidate: true },
+      );
+    } else {
+      setCorrectOption(qIndex, optionId);
+      void trigger(`questions.${qIndex}.correctOption`);
+    }
   };
 
   return (
@@ -398,9 +430,50 @@ function QuizFormContent({
                     </p>
                   ) : null}
 
+                  {/* Question type toggle */}
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">Type:</Label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateQuestion(qIndex, "questionType",
+                          q.questionType === "multiple" ? "single" : "multiple");
+                        // Reset correct selections on type change
+                        setValue(
+                          "questions",
+                          getValues("questions").map((question, i) =>
+                            i === qIndex
+                              ? { ...question, correctOption: "", correctOptions: [] }
+                              : question,
+                          ),
+                          { shouldDirty: true },
+                        );
+                      }}
+                      className={`rounded px-2 py-0.5 text-xs font-semibold border transition-colors ${
+                        q.questionType === "multiple"
+                          ? "border-blue-500 bg-blue-500 text-white"
+                          : "border-muted-foreground/30 text-muted-foreground hover:border-blue-400"
+                      }`}
+                    >
+                      {q.questionType === "multiple" ? "Multi-select" : "Single answer"}
+                    </button>
+                  </div>
+
+                  {/* Points input */}
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs">Points:</Label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={q.points ?? 10}
+                      onChange={(e) => updateQuestion(qIndex, "points", Number(e.target.value))}
+                      className="h-7 w-16 rounded border border-input bg-background px-2 text-xs"
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground">
-                      Options (click to mark as correct)
+                      Options (click to mark as correct{q.questionType === "multiple" ? " — multiple allowed" : ""})
                     </Label>
                     {errors.questions?.[qIndex]?.correctOption ? (
                       <p className="text-sm text-destructive">
@@ -416,16 +489,20 @@ function QuizFormContent({
                         {errors.questions[qIndex]?.options?.message as string}
                       </p>
                     ) : null}
-                    {q.options.map((opt, oIndex) => (
+                    {q.options.map((opt, oIndex) => {
+                      const isCorrect =
+                        q.questionType === "multiple"
+                          ? (q.correctOptions ?? []).includes(opt.id)
+                          : q.correctOption === opt.id;
+                      return (
                       <div key={opt.id} className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => {
-                            setCorrectOption(qIndex, opt.id);
-                            void trigger(`questions.${qIndex}.correctOption`);
-                          }}
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold transition-colors ${
-                            q.correctOption === opt.id
+                          onClick={() => toggleCorrectOption(qIndex, opt.id)}
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center ${
+                            q.questionType === "multiple" ? "rounded-md" : "rounded-full"
+                          } border-2 text-xs font-semibold transition-colors ${
+                            isCorrect
                               ? "border-green-500 bg-green-500 text-white"
                               : "border-muted-foreground/30 hover:border-green-400"
                           }`}
@@ -454,7 +531,8 @@ function QuizFormContent({
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
-                    ))}
+                      );
+                    })}
                     {q.options.map((_, oIndex) =>
                       errors.questions?.[qIndex]?.options?.[oIndex]?.text ? (
                         <p

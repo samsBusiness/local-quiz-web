@@ -25,8 +25,17 @@ export class QuestionDto {
   public options!: OptionDto[];
 
   @IsString()
+  @IsOptional()
+  public questionType?: 'single' | 'multiple';
+
+  @IsString()
   @IsNotEmpty()
   public correctOption!: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  public correctOptions?: string[];
 
   @IsNumber()
   @Min(1)

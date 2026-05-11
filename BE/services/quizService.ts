@@ -35,10 +35,12 @@ function addQuestionIds(
 
 // Helper to remove IDs from questions before saving
 function removeQuestionIds(questions: QuestionDto[]): IQuestion[] {
-  return questions.map(({ question, options, correctOption, points, timeLimit }) => ({
+  return questions.map(({ question, options, questionType, correctOption, correctOptions, points, timeLimit }) => ({
     question,
     options,
+    questionType: questionType ?? 'single',
     correctOption,
+    correctOptions,
     points,
     timeLimit
   }));

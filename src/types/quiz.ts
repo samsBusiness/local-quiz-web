@@ -3,11 +3,15 @@ export interface Option {
   text: string;
 }
 
+export type QuestionType = 'single' | 'multiple';
+
 export interface Question {
   id: string;
   question: string;
   options: Option[];
+  questionType?: QuestionType;
   correctOption: string;
+  correctOptions?: string[];
   points?: number;
   timeLimit: number;
 }

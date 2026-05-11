@@ -5,10 +5,14 @@ export interface IOption {
   text: string;
 }
 
+export type QuestionType = 'single' | 'multiple';
+
 export interface IQuestion {
   question: string;
   options: IOption[];
-  correctOption: string;
+  questionType: QuestionType;
+  correctOption: string;        // primary correct option (single-select)
+  correctOptions?: string[];    // all correct option ids (multi-select)
   points?: number;
   timeLimit: number;
 }
@@ -52,6 +56,11 @@ const QuestionSchema: Schema = new Schema({
       message: 'Question must have at least 2 options'
     }
   },
+  questionType: {
+    type: String,
+    enum: ['single', 'multiple'],
+    default: 'single',
+  },
   correctOption: {
     type: String,
     required: true,
@@ -61,6 +70,10 @@ const QuestionSchema: Schema = new Schema({
       },
       message: 'Correct option must reference a valid option id'
     }
+  },
+  correctOptions: {
+    type: [String],
+    default: undefined,
   },
   points: {
     type: Number,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { CalendarDays, Users, Trophy, Trash2 } from "lucide-react";
+import { CalendarDays, Users, Trophy, Trash2, History } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +45,13 @@ export function SessionsModal({
   );
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // History sub-modal state
+  const [historyUser, setHistoryUser] = useState<{
+    name: string;
+    userId: string;
+    entries: { sessionIdentifier: string; score: number; date: Date }[];
+  } | null>(null);
 
   useEffect(() => {
     if (!open || !quizId) return;
@@ -116,6 +123,36 @@ export function SessionsModal({
     return `${session.quizMaster.name}: ${day}-${month}-${year} ${hours}:${minutes}`;
   };
 
+  // Map of userId → all session entries (for multi-session detection)
+  const userSessionHistory = useMemo(() => {
+    const map = new Map<
+      string,
+      { name: string; userId: string; entries: { sessionIdentifier: string; score: number; date: Date }[] }
+    >();
+
+    for (const session of sessions) {
+      const sessionDate = new Date(session.date);
+      const sessionIdentifier = formatSessionIdentifier(session);
+      for (const attendee of session.attendees) {
+        const key = attendee.userId || attendee.name;
+        const existing = map.get(key);
+        const entry = { sessionIdentifier, score: attendee.score, date: sessionDate };
+        if (existing) {
+          existing.entries.push(entry);
+        } else {
+          map.set(key, { name: attendee.name, userId: attendee.userId || attendee.name, entries: [entry] });
+        }
+      }
+    }
+
+    // Sort each user's entries by date descending (latest first)
+    for (const userData of map.values()) {
+      userData.entries.sort((a, b) => b.date.getTime() - a.date.getTime());
+    }
+
+    return map;
+  }, [sessions]);
+
   const overallScoreboard = useMemo(() => {
     const employeeMap = new Map<
       string,
@@ -125,10 +162,11 @@ export function SessionsModal({
         sessionIdentifier: string;
         userId: string;
         sessionDate: Date;
+        sessionCount: number;
       }
     >();
 
-    // Process all sessions to find earliest for each employee
+    // Process all sessions — keep LATEST score per employee
     for (const session of sessions) {
       const sessionDate = new Date(session.date);
       const sessionIdentifier = formatSessionIdentifier(session);
@@ -137,23 +175,32 @@ export function SessionsModal({
         const key = attendee.userId || attendee.name;
         const existing = employeeMap.get(key);
 
-        if (!existing || sessionDate < existing.sessionDate) {
-          // If no existing entry or this session is earlier, update
+        if (!existing || sessionDate > existing.sessionDate) {
+          // Keep the latest session score
           employeeMap.set(key, {
             name: attendee.name,
             totalScore: attendee.score,
             sessionIdentifier,
             userId: attendee.userId,
             sessionDate,
+            sessionCount: existing?.sessionCount ?? 1,
           });
+        } else if (existing) {
+          existing.sessionCount += 1;
         }
       }
+    }
+
+    // Recount using userSessionHistory for accuracy
+    for (const [key, entry] of employeeMap.entries()) {
+      const historyEntry = userSessionHistory.get(key);
+      if (historyEntry) entry.sessionCount = historyEntry.entries.length;
     }
 
     return [...employeeMap.values()].sort(
       (a, b) => b.totalScore - a.totalScore,
     );
-  }, [sessions]);
+  }, [sessions, userSessionHistory]);
 
   const detailedScores = useMemo(() => {
     const allScores: {
@@ -181,6 +228,7 @@ export function SessionsModal({
   }, [sessions]);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl h-[85vh] max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader className="shrink-0">
@@ -236,7 +284,10 @@ export function SessionsModal({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {overallScoreboard.map((entry, index) => (
+                        {overallScoreboard.map((entry, index) => {
+                          const userId = entry.userId || entry.name;
+                          const hasMultipleSessions = entry.sessionCount > 1;
+                          return (
                           <TableRow key={entry.name}>
                             <TableCell>
                               {index === 0 ? (
@@ -246,7 +297,23 @@ export function SessionsModal({
                               )}
                             </TableCell>
                             <TableCell className="font-medium">
-                              {entry.name}
+                              <div className="flex items-center gap-1.5">
+                                {entry.name}
+                                {hasMultipleSessions && (
+                                  <button
+                                    type="button"
+                                    title={`${entry.sessionCount} sessions — click to view history`}
+                                    onClick={() => {
+                                      const userData = userSessionHistory.get(userId);
+                                      if (userData) setHistoryUser(userData);
+                                    }}
+                                    className="inline-flex items-center gap-0.5 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 hover:bg-blue-200 transition-colors dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/70"
+                                  >
+                                    <History className="h-3 w-3" />
+                                    {entry.sessionCount}
+                                  </button>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-muted-foreground">
                               {entry.userId}
@@ -263,7 +330,8 @@ export function SessionsModal({
                               {entry.totalScore}
                             </TableCell>
                           </TableRow>
-                        ))}
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
@@ -484,5 +552,50 @@ export function SessionsModal({
         </Dialog>
       </DialogContent>
     </Dialog>
+
+    {/* Per-user session history sub-modal */}
+    <Dialog open={!!historyUser} onOpenChange={(o) => { if (!o) setHistoryUser(null); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Session History — {historyUser?.name}
+          </DialogTitle>
+          <DialogDescription>
+            Emp Code: {historyUser?.userId} &middot; {historyUser?.entries.length} session
+            {(historyUser?.entries.length ?? 0) > 1 ? "s" : ""} &middot; showing latest first
+          </DialogDescription>
+        </DialogHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>#</TableHead>
+              <TableHead>Session</TableHead>
+              <TableHead className="text-right">Score</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {historyUser?.entries.map((e, i) => (
+              <TableRow key={i}>
+                <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={e.sessionIdentifier}>
+                  {e.sessionIdentifier}
+                  {i === 0 && (
+                    <span className="ml-1.5 rounded bg-green-100 px-1 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                      latest
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell className="text-right font-semibold">{e.score}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setHistoryUser(null)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
