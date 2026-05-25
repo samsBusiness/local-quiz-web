@@ -24,6 +24,7 @@ export interface IQuiz extends Document {
   description: string;
   questions: IQuestion[];
   createdBy: mongoose.Types.ObjectId;
+  sessionCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -124,6 +125,10 @@ const QuizSchema: Schema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
+  },
+  sessionCount: {
+    type: Number,
+    default: 0,
   },
 }, {
   timestamps: true,

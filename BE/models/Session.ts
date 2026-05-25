@@ -9,6 +9,8 @@ export interface IAttendee {
 export interface ISession extends Document {
   quizMaster: mongoose.Types.ObjectId;
   quiz: mongoose.Types.ObjectId;
+  sessionNumber: number;
+  sessionName: string;
   date: Date;
   attendees: IAttendee[];
   isActive: boolean;
@@ -40,6 +42,14 @@ const SessionSchema: Schema = new Schema({
   quiz: {
     type: Schema.Types.ObjectId,
     ref: 'Quiz',
+    required: true,
+  },
+  sessionNumber: {
+    type: Number,
+    required: true,
+  },
+  sessionName: {
+    type: String,
     required: true,
   },
   date: {

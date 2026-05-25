@@ -46,6 +46,8 @@ export interface Session {
     _id: string;
     quizName: string;
   };
+  sessionNumber: number;
+  sessionName: string;
   date: string;
   attendees: Attendee[];
   isActive: boolean;

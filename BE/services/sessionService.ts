@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { Session, ISession } from '../models/Session';
+import { Quiz } from '../models/Quiz';
 import { ServiceResponseType } from '../types/api';
 
 export const createSessionService = async (
@@ -15,7 +16,20 @@ export const createSessionService = async (
   }
 ): Promise<ServiceResponseType> => {
   try {
-    const session = await Session.create(sessionData);
+    const quiz = await Quiz.findByIdAndUpdate(
+      sessionData.quiz,
+      { $inc: { sessionCount: 1 } },
+      { new: true }
+    );
+
+    if (!quiz) {
+      return { status: 404, message: 'Quiz not found' };
+    }
+
+    const sessionNumber = quiz.sessionCount;
+    const sessionName = `${quiz.quizCode}-session-${sessionNumber}`;
+
+    const session = await Session.create({ ...sessionData, sessionNumber, sessionName });
 
     return {
       status: 201,
@@ -25,6 +39,8 @@ export const createSessionService = async (
           _id: session._id,
           quizMaster: session.quizMaster,
           quiz: session.quiz,
+          sessionNumber: session.sessionNumber,
+          sessionName: session.sessionName,
           date: session.date,
           attendees: session.attendees,
           createdAt: session.createdAt,
@@ -63,6 +79,8 @@ export const getSessionsService = async (quizId?: string): Promise<ServiceRespon
           _id: session._id,
           quizMaster: session.quizMaster,
           quiz: session.quiz,
+          sessionNumber: session.sessionNumber,
+          sessionName: session.sessionName,
           date: session.date,
           attendees: session.attendees,
           createdAt: session.createdAt,
@@ -100,6 +118,8 @@ export const getSessionByIdService = async (sessionId: string): Promise<ServiceR
           _id: session._id,
           quizMaster: session.quizMaster,
           quiz: session.quiz,
+          sessionNumber: session.sessionNumber,
+          sessionName: session.sessionName,
           date: session.date,
           attendees: session.attendees,
           createdAt: session.createdAt,
@@ -154,6 +174,8 @@ export const updateSessionService = async (
           _id: session._id,
           quizMaster: session.quizMaster,
           quiz: session.quiz,
+          sessionNumber: session.sessionNumber,
+          sessionName: session.sessionName,
           date: session.date,
           attendees: session.attendees,
           createdAt: session.createdAt,
@@ -183,6 +205,12 @@ export const deleteSessionService = async (sessionId: string): Promise<ServiceRe
 
     await Session.findByIdAndDelete(sessionId);
 
+    // Only decrement if this was the topmost session for its quiz
+    const quiz = await Quiz.findById(session.quiz);
+    if (quiz && session.sessionNumber === quiz.sessionCount) {
+      await Quiz.findByIdAndUpdate(session.quiz, { $inc: { sessionCount: -1 } });
+    }
+
     return {
       status: 200,
       message: 'Session deleted successfully',
@@ -191,6 +219,8 @@ export const deleteSessionService = async (sessionId: string): Promise<ServiceRe
           _id: session._id,
           quizMaster: session.quizMaster,
           quiz: session.quiz,
+          sessionNumber: session.sessionNumber,
+          sessionName: session.sessionName,
           date: session.date,
           attendees: session.attendees,
           createdAt: session.createdAt,

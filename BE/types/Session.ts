@@ -10,6 +10,8 @@ export interface Session {
   id: string;
   quizMaster: User;
   quiz: Quiz;
+  sessionNumber: number;
+  sessionName: string;
   date: Date;
   attendees: Attendee[];
   isActive: boolean;

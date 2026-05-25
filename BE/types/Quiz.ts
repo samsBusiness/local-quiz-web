@@ -12,6 +12,7 @@ export interface Quiz {
   description: string;
   questions: Question[];
   createdBy: string; // User ID
+  sessionCount: number;
   createdAt?: Date;
   updatedAt?: Date;
 }

@@ -63,6 +63,8 @@ export class SessionResponseDto {
   public _id!: string;
   public quizMaster!: string;
   public quiz!: string;
+  public sessionNumber!: number;
+  public sessionName!: string;
   public date!: Date;
   public attendees!: AttendeeDto[];
   public isActive!: boolean;
