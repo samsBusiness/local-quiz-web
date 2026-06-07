@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { CalendarDays, Users, Trophy, Trash2, History, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { CalendarDays, Users, Trophy, Trash2, History, ArrowUpDown, ArrowUp, ArrowDown, UserX } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +47,13 @@ export function SessionsModal({
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const [kickTarget, setKickTarget] = useState<{
+    sessionId: string;
+    attendeeName: string;
+    attendeeKey: string;
+  } | null>(null);
+  const [kickingAttendee, setKickingAttendee] = useState(false);
 
   // Scoreboard sort + filter
   const [sortField, setSortField] = useState<SortField>("rank");
@@ -133,6 +140,54 @@ export function SessionsModal({
   const initiateDelete = (session: Session) => {
     setSessionToDelete(session);
     setDeleteDialogOpen(true);
+  };
+
+  const initiateKick = (sessionId: string, attendeeName: string, attendeeKey: string) => {
+    setKickTarget({ sessionId, attendeeName, attendeeKey });
+  };
+
+  const confirmKick = async () => {
+    if (!kickTarget) return;
+    setKickingAttendee(true);
+    try {
+      const session = sessions.find((s) => s._id === kickTarget.sessionId);
+      if (!session) return;
+
+      const remaining = session.attendees.filter(
+        (a) => (a.userId || a.name) !== kickTarget.attendeeKey,
+      );
+
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/session/${kickTarget.sessionId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          attendees: remaining.map((a) => ({
+            name: a.name,
+            score: String(a.score),
+            userId: a.userId,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (data.status === 200) {
+        setSessions((prev) =>
+          prev.map((s) =>
+            s._id === kickTarget.sessionId
+              ? { ...s, attendees: remaining }
+              : s,
+          ),
+        );
+      }
+    } catch (error) {
+      console.error("Failed to kick attendee:", error);
+    } finally {
+      setKickingAttendee(false);
+      setKickTarget(null);
+    }
   };
 
   const formatSessionIdentifier = (session: Session): string => {
@@ -523,6 +578,7 @@ export function SessionsModal({
                                     <TableHead>Emp Code</TableHead>
                                     <TableHead>Name</TableHead>
                                     <TableHead className="text-right">Score</TableHead>
+                                    <TableHead className="w-10" />
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -561,6 +617,17 @@ export function SessionsModal({
                                           <TableCell className="text-right">
                                             {attendee.score}
                                           </TableCell>
+                                          <TableCell>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                              title="Remove from session"
+                                              onClick={() => initiateKick(session._id, attendee.name, key)}
+                                            >
+                                              <UserX className="h-3.5 w-3.5" />
+                                            </Button>
+                                          </TableCell>
                                         </TableRow>
                                       );
                                     })}
@@ -576,6 +643,41 @@ export function SessionsModal({
               </TabsContent>
             </Tabs>
           )}
+
+          {/* Kick Attendee Confirmation Dialog */}
+          <Dialog open={!!kickTarget} onOpenChange={(o) => { if (!o && !kickingAttendee) setKickTarget(null); }}>
+            <DialogContent style={{ maxWidth: "28rem", width: "28rem" }}>
+              <DialogHeader>
+                <DialogTitle>Remove from Session?</DialogTitle>
+                <DialogDescription>
+                  Remove <strong>{kickTarget?.attendeeName}</strong> from this session&apos;s results? This cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setKickTarget(null)}
+                  disabled={kickingAttendee}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={confirmKick}
+                  disabled={kickingAttendee}
+                >
+                  {kickingAttendee ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Removing...
+                    </>
+                  ) : (
+                    "Remove"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Delete Confirmation Dialog */}
           <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -694,23 +796,38 @@ export function SessionsModal({
                       <TableHead>Emp Code</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead className="text-right">Score</TableHead>
+                      <TableHead className="w-10" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {[...drillSession.attendees]
                       .sort((a, b) => b.score - a.score)
-                      .map((attendee, i) => (
-                        <TableRow key={attendee.userId ?? attendee.name}>
-                          <TableCell>
-                            {i === 0 ? <Trophy className="h-4 w-4 text-yellow-500" /> : i + 1}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm text-muted-foreground">
-                            {attendee.userId}
-                          </TableCell>
-                          <TableCell className="font-medium">{attendee.name}</TableCell>
-                          <TableCell className="text-right font-semibold">{attendee.score}</TableCell>
-                        </TableRow>
-                      ))}
+                      .map((attendee, i) => {
+                        const key = attendee.userId || attendee.name;
+                        return (
+                          <TableRow key={attendee.userId ?? attendee.name}>
+                            <TableCell>
+                              {i === 0 ? <Trophy className="h-4 w-4 text-yellow-500" /> : i + 1}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm text-muted-foreground">
+                              {attendee.userId}
+                            </TableCell>
+                            <TableCell className="font-medium">{attendee.name}</TableCell>
+                            <TableCell className="text-right font-semibold">{attendee.score}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                title="Remove from session"
+                                onClick={() => initiateKick(drillSession._id, attendee.name, key)}
+                              >
+                                <UserX className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                   </TableBody>
                 </Table>
               )}
