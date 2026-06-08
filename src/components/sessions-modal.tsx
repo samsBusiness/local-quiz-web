@@ -21,7 +21,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Session } from "@/types/quiz";
@@ -337,7 +336,7 @@ export function SessionsModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl h-[85vh] max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogContent className="w-[95vw] max-w-3xl h-[90vh] sm:h-[85vh] max-h-[90vh] flex flex-col overflow-hidden p-4 sm:p-6">
           <DialogHeader className="shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <CalendarDays className="h-5 w-5" />
@@ -353,7 +352,7 @@ export function SessionsModal({
               <p className="text-muted-foreground">Loading sessions...</p>
             </div>
           ) : (
-            <Tabs defaultValue="scoreboard" className="flex-1 h-0 flex flex-col">
+            <Tabs defaultValue="scoreboard" className="flex-1 min-h-0 flex flex-col">
               <TabsList className="shrink-0 w-fit">
                 <TabsTrigger value="scoreboard">
                   <Trophy className="h-4 w-4" />
@@ -366,16 +365,16 @@ export function SessionsModal({
               </TabsList>
 
               {/* ── Overall Scoreboard ── */}
-              <TabsContent value="scoreboard" className="flex-1 h-0 mt-2 flex flex-col gap-2">
-                <ScrollArea className="flex-1 pr-4 -mr-4">
+              <TabsContent value="scoreboard" className="flex-1 min-h-0 mt-2 flex flex-col">
+                <div className="flex-1 min-h-0 overflow-y-auto">
                   {overallScoreboard.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <Trophy className="h-10 w-10 text-muted-foreground mb-3" />
                       <p className="text-muted-foreground">No scores yet.</p>
                     </div>
                   ) : (
-                    <div className="pb-4">
-                      <Table>
+                    <div className="pb-4 overflow-x-auto">
+                      <Table className="min-w-120">
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-12">#</TableHead>
@@ -389,7 +388,7 @@ export function SessionsModal({
                                 Name <SortIcon field="name" />
                               </button>
                             </TableHead>
-                            <TableHead>Session</TableHead>
+                            <TableHead className="max-w-32">Session</TableHead>
                             <TableHead>
                               <button type="button" className="flex items-center hover:text-foreground" onClick={() => handleSortClick("date")}>
                                 Date <SortIcon field="date" />
@@ -471,11 +470,12 @@ export function SessionsModal({
                                   </div>
                                 </TableCell>
                                 <TableCell className="font-medium">{entry.name}</TableCell>
-                                <TableCell>
+                                <TableCell className="max-w-32">
                                   <button
                                     type="button"
                                     onClick={() => setSelectedSessionId(entry.sessionId)}
-                                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-200 text-left"
+                                    title={entry.sessionIdentifier}
+                                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-200 text-left truncate block max-w-full"
                                   >
                                     {entry.sessionIdentifier}
                                   </button>
@@ -500,12 +500,12 @@ export function SessionsModal({
                       </Table>
                     </div>
                   )}
-                </ScrollArea>
+                </div>
               </TabsContent>
 
               {/* ── Sessions ── */}
-              <TabsContent value="sessions" className="flex-1 h-0 mt-2">
-                <ScrollArea className="h-full pr-4 -mr-4">
+              <TabsContent value="sessions" className="flex-1 min-h-0 mt-2">
+                <div className="h-full overflow-y-auto">
                   {sessions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <CalendarDays className="h-10 w-10 text-muted-foreground mb-3" />
@@ -520,9 +520,9 @@ export function SessionsModal({
                           key={session._id}
                           className="rounded-lg border p-4 space-y-3"
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="space-y-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
                                 {session.sessionName && (
                                   <span className="text-sm font-semibold">
                                     {session.sessionName}
@@ -571,7 +571,8 @@ export function SessionsModal({
                           {session.attendees.length > 0 && (
                             <>
                               <Separator />
-                              <Table>
+                              <div className="overflow-x-auto">
+                              <Table className="min-w-72">
                                 <TableHeader>
                                   <TableRow>
                                     <TableHead className="w-12">#</TableHead>
@@ -633,20 +634,21 @@ export function SessionsModal({
                                     })}
                                 </TableBody>
                               </Table>
+                              </div>
                             </>
                           )}
                         </div>
                       ))}
                     </div>
                   )}
-                </ScrollArea>
+                </div>
               </TabsContent>
             </Tabs>
           )}
 
           {/* Kick Attendee Confirmation Dialog */}
           <Dialog open={!!kickTarget} onOpenChange={(o) => { if (!o && !kickingAttendee) setKickTarget(null); }}>
-            <DialogContent style={{ maxWidth: "28rem", width: "28rem" }}>
+            <DialogContent className="w-[92vw] max-w-md">
               <DialogHeader>
                 <DialogTitle>Remove from Session?</DialogTitle>
                 <DialogDescription>
@@ -681,7 +683,7 @@ export function SessionsModal({
 
           {/* Delete Confirmation Dialog */}
           <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-            <DialogContent style={{ maxWidth: "28rem", width: "28rem" }}>
+            <DialogContent className="w-[92vw] max-w-md">
               <DialogHeader>
                 <DialogTitle>Delete Session</DialogTitle>
                 <DialogDescription>
@@ -728,7 +730,7 @@ export function SessionsModal({
 
       {/* Per-user session history sub-modal */}
       <Dialog open={!!historyUser} onOpenChange={(o) => { if (!o) setHistoryUser(null); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[92vw] max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="h-4 w-4" />
@@ -775,7 +777,7 @@ export function SessionsModal({
         const drillSession = sessions.find((s) => s._id === selectedSessionId);
         return (
           <Dialog open={!!selectedSessionId} onOpenChange={(o) => { if (!o) setSelectedSessionId(null); }}>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="w-[92vw] max-w-lg">
               <DialogHeader>
                 <DialogTitle>
                   {drillSession?.sessionName || (drillSession ? formatSessionIdentifier(drillSession) : "Session")}
@@ -789,7 +791,8 @@ export function SessionsModal({
                 </DialogDescription>
               </DialogHeader>
               {drillSession && (
-                <Table>
+                <div className="overflow-x-auto">
+                <Table className="min-w-72">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-10">#</TableHead>
@@ -830,6 +833,7 @@ export function SessionsModal({
                       })}
                   </TableBody>
                 </Table>
+                </div>
               )}
               <DialogFooter>
                 <Button variant="outline" onClick={() => setSelectedSessionId(null)}>Close</Button>
