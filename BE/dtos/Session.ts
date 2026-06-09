@@ -1,6 +1,20 @@
 import "reflect-metadata";
-import { IsString, IsOptional, IsArray, IsBoolean, IsMongoId, IsDate, IsNotEmpty, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsBoolean, IsMongoId, IsDate, IsNotEmpty, ValidateNested, IsNumber } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
+
+export class QuestionResultDto {
+  @IsString()
+  @IsOptional()
+  public questionId?: string;
+
+  @IsString()
+  @IsOptional()
+  public questionText?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  public correct?: boolean;
+}
 
 export class AttendeeDto {
   @IsString()
@@ -15,6 +29,20 @@ export class AttendeeDto {
   @IsString()
   @IsOptional()
   public userId?: string;
+
+  @IsNumber()
+  @IsOptional()
+  public correctAnswers?: number;
+
+  @IsNumber()
+  @IsOptional()
+  public totalQuestions?: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => QuestionResultDto)
+  @IsOptional()
+  public questionResults?: QuestionResultDto[];
 }
 
 export class CreateSessionDto {

@@ -1,9 +1,18 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IAttendeeQuestionResult {
+  questionId: string;
+  questionText: string;
+  correct: boolean;
+}
+
 export interface IAttendee {
   name: string;
   score: string;
   userId?: string;
+  correctAnswers?: number;
+  totalQuestions?: number;
+  questionResults?: IAttendeeQuestionResult[];
 }
 
 export interface ISession extends Document {
@@ -18,6 +27,12 @@ export interface ISession extends Document {
   updatedAt: Date;
 }
 
+const QuestionResultSchema: Schema = new Schema({
+  questionId: { type: String },
+  questionText: { type: String },
+  correct: { type: Boolean },
+}, { _id: false });
+
 const AttendeeSchema: Schema = new Schema({
   name: {
     type: String,
@@ -30,6 +45,16 @@ const AttendeeSchema: Schema = new Schema({
   },
   userId: {
     type: String,
+  },
+  correctAnswers: {
+    type: Number,
+  },
+  totalQuestions: {
+    type: Number,
+  },
+  questionResults: {
+    type: [QuestionResultSchema],
+    default: undefined,
   },
 }, { _id: false });
 

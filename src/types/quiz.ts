@@ -28,11 +28,20 @@ export interface Quiz {
   updatedAt: string;
 }
 
+export interface AttendeeQuestionResult {
+  questionId: string;
+  questionText: string;
+  correct: boolean;
+}
+
 export interface Attendee {
   userId: string;
   name: string;
   score: number;
   joinedAt: string;
+  correctAnswers?: number;
+  totalQuestions?: number;
+  questionResults?: AttendeeQuestionResult[];
 }
 
 export interface Session {

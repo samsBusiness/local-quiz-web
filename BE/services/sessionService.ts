@@ -12,6 +12,9 @@ export const createSessionService = async (
       name: string;
       score: string;
       userId?: string;
+      correctAnswers?: number;
+      totalQuestions?: number;
+      questionResults?: Array<{ questionId: string; questionText: string; correct: boolean }>;
     }>;
   }
 ): Promise<ServiceResponseType> => {
@@ -145,6 +148,10 @@ export const updateSessionService = async (
     attendees?: Array<{
       name: string;
       score: string;
+      userId?: string;
+      correctAnswers?: number;
+      totalQuestions?: number;
+      questionResults?: Array<{ questionId: string; questionText: string; correct: boolean }>;
     }>;
   }
 ): Promise<ServiceResponseType> => {

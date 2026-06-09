@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { CalendarDays, Users, Trophy, Trash2, History, ArrowUpDown, ArrowUp, ArrowDown, UserX } from "lucide-react";
+import { CalendarDays, Users, Trophy, Trash2, History, ArrowUpDown, ArrowUp, ArrowDown, UserX, ListChecks } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import type { Session } from "@/types/quiz";
+import type { Session, AttendeeQuestionResult } from "@/types/quiz";
 
 type SortField = "rank" | "name" | "empCode" | "date";
 type SortDir = "asc" | "desc";
@@ -70,6 +70,14 @@ export function SessionsModal({
     name: string;
     userId: string;
     entries: { sessionIdentifier: string; score: number; date: Date }[];
+  } | null>(null);
+
+  // Question drill-down state
+  const [questionDrill, setQuestionDrill] = useState<{
+    name: string;
+    correctAnswers: number;
+    totalQuestions: number;
+    results: AttendeeQuestionResult[];
   } | null>(null);
 
   useEffect(() => {
@@ -239,6 +247,9 @@ export function SessionsModal({
         userId: string;
         sessionDate: Date;
         sessionCount: number;
+        correctAnswers?: number;
+        totalQuestions?: number;
+        questionResults?: AttendeeQuestionResult[];
       }
     >();
 
@@ -259,6 +270,9 @@ export function SessionsModal({
             userId: attendee.userId,
             sessionDate,
             sessionCount: existing?.sessionCount ?? 1,
+            correctAnswers: attendee.correctAnswers,
+            totalQuestions: attendee.totalQuestions,
+            questionResults: attendee.questionResults,
           });
         } else if (existing) {
           existing.sessionCount += 1;
@@ -399,6 +413,7 @@ export function SessionsModal({
                                 Score <SortIcon field="rank" />
                               </button>
                             </TableHead>
+                            <TableHead className="text-right w-24">Correct</TableHead>
                           </TableRow>
                           <TableRow className="hover:bg-transparent">
                             <TableHead className="py-1" />
@@ -434,6 +449,7 @@ export function SessionsModal({
                                 className="h-6 w-full rounded border border-input bg-background px-1.5 text-xs text-foreground"
                               />
                             </TableHead>
+                            <TableHead className="py-1" />
                             <TableHead className="py-1" />
                           </TableRow>
                         </TableHeader>
@@ -486,12 +502,38 @@ export function SessionsModal({
                                 <TableCell className="text-right font-semibold">
                                   {entry.totalScore}
                                 </TableCell>
+                                <TableCell className="text-right">
+                                  {entry.correctAnswers !== undefined ? (
+                                    <div className="flex items-center justify-end gap-1">
+                                      <span className="text-sm font-medium">
+                                        {entry.correctAnswers}/{entry.totalQuestions ?? "?"}
+                                      </span>
+                                      {entry.questionResults && entry.questionResults.length > 0 && (
+                                        <button
+                                          type="button"
+                                          title="View question breakdown"
+                                          onClick={() => setQuestionDrill({
+                                            name: entry.name,
+                                            correctAnswers: entry.correctAnswers!,
+                                            totalQuestions: entry.totalQuestions ?? entry.questionResults!.length,
+                                            results: entry.questionResults!,
+                                          })}
+                                          className="text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                          <ListChecks className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground text-xs">—</span>
+                                  )}
+                                </TableCell>
                               </TableRow>
                             );
                           })}
                           {sortedFilteredScoreboard.length === 0 && (
                             <TableRow>
-                              <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
+                              <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
                                 No results match your filter.
                               </TableCell>
                             </TableRow>
@@ -579,6 +621,7 @@ export function SessionsModal({
                                     <TableHead>Emp Code</TableHead>
                                     <TableHead>Name</TableHead>
                                     <TableHead className="text-right">Score</TableHead>
+                                    <TableHead className="text-right w-24">Correct</TableHead>
                                     <TableHead className="w-10" />
                                   </TableRow>
                                 </TableHeader>
@@ -617,6 +660,32 @@ export function SessionsModal({
                                           <TableCell className="font-medium">{attendee.name}</TableCell>
                                           <TableCell className="text-right">
                                             {attendee.score}
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                            {attendee.correctAnswers !== undefined ? (
+                                              <div className="flex items-center justify-end gap-1">
+                                                <span className="text-sm font-medium">
+                                                  {attendee.correctAnswers}/{attendee.totalQuestions ?? "?"}
+                                                </span>
+                                                {attendee.questionResults && attendee.questionResults.length > 0 && (
+                                                  <button
+                                                    type="button"
+                                                    title="View question breakdown"
+                                                    onClick={() => setQuestionDrill({
+                                                      name: attendee.name,
+                                                      correctAnswers: attendee.correctAnswers!,
+                                                      totalQuestions: attendee.totalQuestions ?? attendee.questionResults!.length,
+                                                      results: attendee.questionResults!,
+                                                    })}
+                                                    className="text-muted-foreground hover:text-foreground transition-colors"
+                                                  >
+                                                    <ListChecks className="h-3.5 w-3.5" />
+                                                  </button>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <span className="text-muted-foreground text-xs">—</span>
+                                            )}
                                           </TableCell>
                                           <TableCell>
                                             <Button
@@ -799,6 +868,7 @@ export function SessionsModal({
                       <TableHead>Emp Code</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead className="text-right">Score</TableHead>
+                      <TableHead className="text-right w-24">Correct</TableHead>
                       <TableHead className="w-10" />
                     </TableRow>
                   </TableHeader>
@@ -817,6 +887,32 @@ export function SessionsModal({
                             </TableCell>
                             <TableCell className="font-medium">{attendee.name}</TableCell>
                             <TableCell className="text-right font-semibold">{attendee.score}</TableCell>
+                            <TableCell className="text-right">
+                              {attendee.correctAnswers !== undefined ? (
+                                <div className="flex items-center justify-end gap-1">
+                                  <span className="text-sm font-medium">
+                                    {attendee.correctAnswers}/{attendee.totalQuestions ?? "?"}
+                                  </span>
+                                  {attendee.questionResults && attendee.questionResults.length > 0 && (
+                                    <button
+                                      type="button"
+                                      title="View question breakdown"
+                                      onClick={() => setQuestionDrill({
+                                        name: attendee.name,
+                                        correctAnswers: attendee.correctAnswers!,
+                                        totalQuestions: attendee.totalQuestions ?? attendee.questionResults!.length,
+                                        results: attendee.questionResults!,
+                                      })}
+                                      className="text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                      <ListChecks className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">—</span>
+                              )}
+                            </TableCell>
                             <TableCell>
                               <Button
                                 variant="ghost"
@@ -842,6 +938,53 @@ export function SessionsModal({
           </Dialog>
         );
       })()}
+      {/* Question breakdown dialog */}
+      <Dialog open={!!questionDrill} onOpenChange={(o) => { if (!o) setQuestionDrill(null); }}>
+        <DialogContent className="w-[92vw] max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4" />
+              {questionDrill?.name} — Question Breakdown
+            </DialogTitle>
+            <DialogDescription>
+              {questionDrill?.correctAnswers} correct out of {questionDrill?.totalQuestions} question{(questionDrill?.totalQuestions ?? 0) !== 1 ? "s" : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 min-h-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8">#</TableHead>
+                  <TableHead>Question</TableHead>
+                  <TableHead className="w-16 text-right">Result</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {questionDrill?.results.map((r, i) => (
+                  <TableRow key={r.questionId}>
+                    <TableCell className="text-muted-foreground text-sm">{i + 1}</TableCell>
+                    <TableCell className="text-sm">{r.questionText || r.questionId}</TableCell>
+                    <TableCell className="text-right">
+                      {r.correct ? (
+                        <span className="inline-flex items-center justify-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                          ✓
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center justify-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600 dark:bg-red-900/40 dark:text-red-400">
+                          ✗
+                        </span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter className="shrink-0">
+            <Button variant="outline" onClick={() => setQuestionDrill(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
