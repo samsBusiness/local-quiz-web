@@ -1,9 +1,9 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IAttendeeQuestionResult {
-  questionId: string;
-  questionText: string;
-  correct: boolean;
+  questionId?: string;
+  questionText?: string;
+  correct?: boolean;
 }
 
 export interface IAttendee {
