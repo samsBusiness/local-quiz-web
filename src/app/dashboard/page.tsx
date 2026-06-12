@@ -9,7 +9,9 @@ import {
   MoreHorizontal,
   CalendarDays,
   RefreshCw,
+  FileSpreadsheet,
 } from "lucide-react";
+import { exportQuizToExcel } from "@/lib/excelExport";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -38,7 +40,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import type { Quiz, Question } from "@/types/quiz";
+import type { Quiz, Question, Session } from "@/types/quiz";
 
 function getAuthHeaders() {
   const token = localStorage.getItem("token");
@@ -66,6 +68,7 @@ export default function DashboardPage() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExporting, setIsExporting] = useState<string | null>(null);
   
   // Confirmation dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -230,6 +233,27 @@ export default function DashboardPage() {
     setSessionsOpen(true);
   };
 
+  const handleExportExcel = async (quiz: Quiz) => {
+    setIsExporting(quiz._id);
+    try {
+      const res = await fetch(`/api/session?quizId=${quiz._id}`, {
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.status === 200) {
+        const sessions: Session[] = data.data.sessions ?? [];
+        exportQuizToExcel(quiz.quizName, sessions);
+      } else {
+        toast.error(data.message || "Failed to fetch sessions for export");
+      }
+    } catch (error) {
+      console.error("Failed to export quiz:", error);
+      toast.error("Failed to export quiz");
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -335,6 +359,22 @@ export default function DashboardPage() {
                         <DropdownMenuItem onClick={() => handleEdit(quiz)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleExportExcel(quiz)}
+                          disabled={isExporting === quiz._id}
+                        >
+                          {isExporting === quiz._id ? (
+                            <>
+                              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              Exporting...
+                            </>
+                          ) : (
+                            <>
+                              <FileSpreadsheet className="mr-2 h-4 w-4" />
+                              Export to Excel
+                            </>
+                          )}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDelete(quiz._id)}
